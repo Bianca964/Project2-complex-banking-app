@@ -55,4 +55,19 @@ public class SavingsAccount extends Account {
     public boolean supportsReport() {
         return false;
     }
+
+
+    public void withdraw(final double amount, final User user, final int timestamp) {
+        if (hasEnoughBalance(amount)) {
+            Transaction transaction = new Transaction.TransactionBuilder()
+                    .setTimestamp(timestamp)
+                    .setDescription("Withdraw from savings account")
+                    .setAccountIBAN(getIban())
+                    .build();
+
+            user.addTransaction(transaction);
+            this.addTransaction(transaction);
+            setBalance(getBalance() - amount);
+        }
+    }
 }

@@ -16,11 +16,12 @@ public final class AddAccountCommand extends Command {
 
     @Override
     public void execute(final Bank bank, final ObjectNode objectNode) {
-        Account account = commandInput.getAccountType().equals("classic")
+        String accountType = commandInput.getAccountType();
+        Account account = accountType.equals("classic")
                 ? new ClassicAccount(commandInput.getCurrency(), commandInput.getAccountType(),
                 commandInput.getTimestamp())
                 : new SavingsAccount(commandInput.getCurrency(), commandInput.getAccountType(),
                 commandInput.getTimestamp(), commandInput.getInterestRate());
-        bank.addAccountToUser(commandInput.getEmail(), account);
+        bank.addAccountToUser(commandInput.getEmail(), account, accountType);
     }
 }

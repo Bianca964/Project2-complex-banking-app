@@ -20,11 +20,21 @@ public class User {
     @Setter
     private ArrayList<Account> accounts;
     private final ArrayList<Transaction> transactions;
+    private boolean hasClassicAccount;
 
     public User(final UserInput userInfo) {
         this.userInfo = userInfo;
         this.accounts = new ArrayList<>();
         this.transactions = new ArrayList<>();
+        this.hasClassicAccount = false;
+    }
+
+    public void setHasClassicAccount() {
+        this.hasClassicAccount = true;
+    }
+
+    public boolean hasClassicAccount() {
+        return hasClassicAccount;
     }
 
     /**
@@ -130,6 +140,20 @@ public class User {
     public String getEmail() {
         return userInfo.getEmail();
     }
+
+    public String getBirthDate() {
+        return userInfo.getBirthDate();
+    }
+
+    public String getOccupation() {
+        return userInfo.getOccupation();
+    }
+
+    public int getAge() {
+        return 2024 - Integer.parseInt(userInfo.getBirthDate().substring(0,4));
+    }
+
+
 
     /**
      * @param account the account to be added to the user's list of accounts

@@ -52,6 +52,83 @@ public final class Bank extends ExchangeRate {
         bank = null;
     }
 
+    public void withdrawSavings(CommandInput commandInput) throws Exception {
+
+        User user = this.getUserWithAccount(commandInput.getAccount());
+        Account savingsAccount = this.getAccountWithIBAN(commandInput.getAccount());
+
+        if (user == null) {
+            return;
+        }
+
+        if (user.getAge() < 21) {
+            Transaction transaction = new Transaction.TransactionBuilder()
+                    .setTimestamp(commandInput.getTimestamp())
+                    .setDescription("You don't have the minimum age required.")
+                    .build();
+
+            user.addTransaction(transaction);
+            return;
+        }
+
+        if (!user.hasClassicAccount()) {
+            Transaction transaction = new Transaction.TransactionBuilder()
+                    .setTimestamp(commandInput.getTimestamp())
+                    .setDescription("You do not have a classic account.")
+                    .build();
+
+            user.addTransaction(transaction);
+            return;
+        }
+
+        if (savingsAccount == null) {
+            throw new Exception("Account not found");
+        }
+
+        if (!savingsAccount.hasInterest()) {
+            Transaction transaction = new Transaction.TransactionBuilder()
+                    .setTimestamp(commandInput.getTimestamp())
+                    .setDescription("Account is not of type savings.")
+                    .build();
+            savingsAccount.addTransaction(transaction);
+            return;
+        }
+
+        // extract amount from savings account
+        double exchangeRate = this.getExchangeRate(commandInput.getCurrency(), savingsAccount.getCurrency());
+        double convertedAmount = commandInput.getAmount() * exchangeRate;
+
+        // tb convertita suma
+        if (!savingsAccount.hasEnoughBalance(convertedAmount)) {
+            throw new Exception("Insufficient funds");
+        }
+
+        System.out.println("Savings account balance before: " + savingsAccount.getBalance());
+        savingsAccount.withdraw(convertedAmount);
+        System.out.println("Savings account balance after: " + savingsAccount.getBalance());
+
+        // deposit amount in classic account
+        String currency = commandInput.getCurrency();
+
+        for (Account account : user.getAccounts()) {
+            // if it s a classic account
+            if (!account.hasInterest() && account.getCurrency().equals(currency)) {
+                System.out.println("Classic account balance before: " + account.getBalance());
+                account.deposit(commandInput.getAmount());
+                System.out.println("Classic account balance after: " + account.getBalance());
+
+                // create transaction
+                Transaction transaction = new Transaction.TransactionBuilder()
+                        .setTimestamp(commandInput.getTimestamp())
+                        .setDescription("Savings withdrawal")
+                        .build();
+                user.addTransaction(transaction);
+                account.addTransaction(transaction);
+                return;
+            }
+        }
+    }
+
     /**
      * @param commandInput the object with the whole input
      * @param mapper the object mapper
@@ -268,10 +345,13 @@ public final class Bank extends ExchangeRate {
      * @param email the email of the user to whom the account is added
      * @param account the account to be added
      */
-    public void addAccountToUser(final String email, final Account account) {
+    public void addAccountToUser(final String email, final Account account, final String accountType) {
         User user = getUserWithEmail(email);
         if (user != null) {
             user.addAccount(account);
+            if (accountType.equals("classic")) {
+                user.setHasClassicAccount();
+            }
 
             // add to the transaction list
             Transaction transaction = new Transaction.TransactionBuilder()

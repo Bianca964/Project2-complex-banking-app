@@ -261,4 +261,76 @@ public class TransactionService {
             account.addTransaction(transaction);
         }
     }
+
+
+
+    public void cashWithdrawal(CommandInput commandInput, Bank bank) throws Exception {
+        Account account = bank.getAccountWithCard(commandInput.getCardNumber());
+        if (account == null) {
+            throw new Exception("Card not found");
+        }
+
+        Card card = account.getCard(commandInput.getCardNumber());
+        if (card == null) {
+            throw new Exception("Card not found");
+        }
+
+        User user = bank.getUserWithEmail(commandInput.getEmail());
+        if (user == null) {
+            throw new Exception("User not found");
+        }
+
+        // if the card is frozen, don't do the transaction
+        if (card.isFrozen()) {
+            Transaction transaction = new Transaction.TransactionBuilder()
+                    .setDescription("The card is frozen")
+                    .setTimestamp(commandInput.getTimestamp())
+                    .build();
+
+            user.addTransaction(transaction);
+            account.addTransaction(transaction);
+            return;
+        }
+
+        // CAND E EROAREA: Card has already been used ????????????????????????????????
+
+        double amountInRon = commandInput.getAmount();
+        double amountInAccountCurrency = amountInRon * bank.getExchangeRate("RON", account.getCurrency());
+        double amountWithComission = user.getServicePlan().applyComission(amountInAccountCurrency, account.getCurrency());
+
+        if (!account.hasEnoughBalance(amountWithComission)) {
+            Transaction transaction = new Transaction.TransactionBuilder()
+                    .setDescription("Insufficient funds")
+                    .setTimestamp(commandInput.getTimestamp())
+                    .build();
+
+            user.addTransaction(transaction);
+            account.addTransaction(transaction);
+            return;
+        }
+
+        if (account.getBalance() - amountWithComission < account.getMinBalance()) {
+            Transaction transaction = new Transaction.TransactionBuilder()
+                    .setDescription("Cannot perform payment due to a minimum balance being set")
+                    .setTimestamp(commandInput.getTimestamp())
+                    .build();
+
+            user.addTransaction(transaction);
+            account.addTransaction(transaction);
+            return;
+        }
+
+        // withdraw cash from the account
+        account.withdraw(amountWithComission);
+        Transaction transaction = new Transaction.TransactionBuilder()
+                .setDescription("Cash withdrawal of " + amountInAccountCurrency)
+                .setTimestamp(commandInput.getTimestamp())
+                .setAmountCashWithdrawal(amountInRon)
+                .build();
+
+        user.addTransaction(transaction);
+        account.addTransaction(transaction);
+    }
+
+
 }

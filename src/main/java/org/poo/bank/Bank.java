@@ -8,11 +8,13 @@ import org.poo.accounts.Account;
 import org.poo.accounts.SavingsAccount;
 import org.poo.cards.Card;
 import org.poo.fileio.CommandInput;
+import org.poo.fileio.CommerciantInput;
 import org.poo.fileio.ExchangeInput;
 import org.poo.fileio.UserInput;
 import org.poo.reports.ClassicReport;
 import org.poo.reports.ReportGenerator;
 import org.poo.reports.SpendingsReport;
+import org.poo.transactions.Commerciant;
 import org.poo.transactions.Transaction;
 
 import java.util.ArrayList;
@@ -22,13 +24,19 @@ import static org.poo.utils.Utils.MIN_BALANCE_DIFFERENCE;
 @Getter
 public final class Bank extends ExchangeRate {
     private final ArrayList<User> users;
+    private ArrayList<Commerciant> commerciants;
     private static Bank bank;
 
-    private Bank(final UserInput[] users, final ExchangeInput[] exchangeRates) {
+    private Bank(final UserInput[] users, final ExchangeInput[] exchangeRates, final CommerciantInput[] commerciants) {
         super(exchangeRates);
         this.users = new ArrayList<>();
         for (UserInput user : users) {
             this.users.add(new User(user, this));
+        }
+
+        this.commerciants = new ArrayList<>();
+        for (CommerciantInput commerciant : commerciants) {
+            this.commerciants.add(new Commerciant(commerciant));
         }
     }
 
@@ -38,9 +46,9 @@ public final class Bank extends ExchangeRate {
      * @param exchangeRates the exchange rates of the bank
      * @return the bank instance
      */
-    public static Bank getInstance(final UserInput[] users, final ExchangeInput[] exchangeRates) {
+    public static Bank getInstance(final UserInput[] users, final ExchangeInput[] exchangeRates, final CommerciantInput[] commerciants) {
         if (bank == null) {
-            bank = new Bank(users, exchangeRates);
+            bank = new Bank(users, exchangeRates, commerciants);
         }
         return bank;
     }
@@ -54,19 +62,25 @@ public final class Bank extends ExchangeRate {
 
 
 
+    public Commerciant getCommerciantWithName(final String name) {
+        for (Commerciant commerciant : commerciants) {
+            if (commerciant.getName().equals(name)) {
+                return commerciant;
+            }
+        }
+        return null;
+    }
+
     public void withdrawSavings(CommandInput commandInput) throws Exception {
 
         User user = this.getUserWithAccount(commandInput.getAccount());
         Account savingsAccount = this.getAccountWithIBAN(commandInput.getAccount());
-
-        System.out.println("a intrat in withdrawSavings");
 
         if (user == null) {
             return;
         }
 
         if (user.getAge() < 21) {
-            System.out.println("a intrat in withdrawSavings age");
             Transaction transaction = new Transaction.TransactionBuilder()
                     .setTimestamp(commandInput.getTimestamp())
                     .setDescription("You don't have the minimum age required.")
@@ -77,7 +91,6 @@ public final class Bank extends ExchangeRate {
         }
 
         if (!user.hasClassicAccount()) {
-            System.out.println("a intrat in withdrawSavings classic-dont have a classic account");
             Transaction transaction = new Transaction.TransactionBuilder()
                     .setTimestamp(commandInput.getTimestamp())
                     .setDescription("You do not have a classic account.")
@@ -88,12 +101,10 @@ public final class Bank extends ExchangeRate {
         }
 
         if (savingsAccount == null) {
-            System.out.println("a intrat in withdrawSavings account not found");
             throw new Exception("Account not found");
         }
 
         if (!savingsAccount.hasInterest()) {
-            System.out.println("a intrat in withdrawSavings account not of type savings");
             Transaction transaction = new Transaction.TransactionBuilder()
                     .setTimestamp(commandInput.getTimestamp())
                     .setDescription("Account is not of type savings.")
@@ -107,12 +118,10 @@ public final class Bank extends ExchangeRate {
         double convertedAmount = commandInput.getAmount() * exchangeRate;
 
         if (!savingsAccount.hasEnoughBalance(convertedAmount)) {
-            System.out.println("a intrat in withdrawSavings insufficient funds");
             throw new Exception("Insufficient funds");
         }
 
         savingsAccount.withdraw(convertedAmount);
-        System.out.println("a retras din savings account");
 
         // deposit amount in classic account
         String currency = commandInput.getCurrency();
@@ -120,7 +129,6 @@ public final class Bank extends ExchangeRate {
             // if it s a classic account
             if (!account.hasInterest() && account.getCurrency().equals(currency)) {
                 account.deposit(commandInput.getAmount());
-                System.out.println("a depositat in classic account din savings account ");
 
                 // create transaction
                 Transaction transaction = new Transaction.TransactionBuilder()

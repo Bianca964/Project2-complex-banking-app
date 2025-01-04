@@ -40,7 +40,10 @@ public final class Transaction {
     // upgradePlan
     private final String newPlanType;
     private final String accountIbanUpgradePlan;
-    // + accountIBAN (already declared)
+
+
+    // cashWithdrawal
+    private final double amountCashWithdrawal;
 
     // private constructor for forcing the use of the Builder
     private Transaction(final TransactionBuilder builder) {
@@ -62,6 +65,7 @@ public final class Transaction {
         this.error = builder.error;
         this.newPlanType = builder.newPlanType;
         this.accountIbanUpgradePlan = builder.accountIbanUpgradePlan;
+        this.amountCashWithdrawal = builder.amountCashWithdrawal;
     }
 
     public static final class TransactionBuilder {
@@ -83,6 +87,12 @@ public final class Transaction {
         private String transferType;
         private String newPlanType;
         private String accountIbanUpgradePlan;
+        private double amountCashWithdrawal;
+
+        public TransactionBuilder setAmountCashWithdrawal(final double argAmountCashWithdrawal) {
+            this.amountCashWithdrawal = argAmountCashWithdrawal;
+            return this;
+        }
 
         public TransactionBuilder setAccountIbanUpgradePlan(final String argAccountIbanUpgradePlan) {
             this.accountIbanUpgradePlan = argAccountIbanUpgradePlan;
@@ -243,12 +253,15 @@ public final class Transaction {
         if (amountSender <= 0 || fromAccount == null || toAccount == null) {
             return;
         }
-        if (fromAccount.getBalance() < amountSender) {
-            throw new Exception("Insufficient funds");
-        }
 
         // apply comission
         double amountSenderWithComission = sender.getServicePlan().applyComission(amountSender, fromAccount.getCurrency());
+
+        if (fromAccount.getBalance() < amountSenderWithComission) {
+            throw new Exception("Insufficient funds");
+        }
+
+
 
         fromAccount.withdraw(amountSenderWithComission);
         toAccount.deposit(amountReceiver);
@@ -331,6 +344,11 @@ public final class Transaction {
 
         if (accountIbanUpgradePlan != null) {
             objectNode.put("accountIBAN", accountIbanUpgradePlan);
+        }
+
+        // cashWithdrawal
+        if (amountCashWithdrawal > 0) {
+            objectNode.put("amount", amountCashWithdrawal);
         }
 
         return objectNode;

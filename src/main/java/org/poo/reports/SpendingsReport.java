@@ -49,12 +49,19 @@ public final class SpendingsReport implements ReportGenerator {
                     && transaction.getDescription().equals("Card payment")) {
                 transactionsArray.add(transaction.transformToAnObjectNode(mapper));
 
+                // data for commerciant
                 String commerciantName = transaction.getCommerciant();
                 double amount = transaction.getAmountPayOnline();
 
+                Commerciant oldCommerciant = bank.getCommerciantWithName(commerciantName);
+                if (oldCommerciant == null) {
+                    throw new Exception("Commerciant not found");
+                }
+
+                // add only the used commerciants
                 Commerciant commerciant = commerciantsMap.get(commerciantName);
                 if (commerciant == null) {
-                    commerciant = new Commerciant(commerciantName, amount);
+                    commerciant = new Commerciant(oldCommerciant, amount);
                     commerciantsMap.put(commerciantName, commerciant);
                 } else {
                     commerciant.addAmountSpent(amount);

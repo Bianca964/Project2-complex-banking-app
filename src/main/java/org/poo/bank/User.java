@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.poo.accounts.Account;
 import org.poo.cards.Card;
+import org.poo.fileio.CommandInput;
 import org.poo.fileio.UserInput;
 import org.poo.transactions.Transaction;
 
@@ -82,7 +83,7 @@ public class User {
         }
 
         // upgrade the plan
-        // NU VERIFIC DACA FAC UPGRADE DE LA STUDENT LA STANDARD SAU INVERS
+        // NU VERIFIC DACA FAC UPGRADE DE LA STUDENT LA STANDARD SAU INVERS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         double exchangeRateFromRon = 0.0;
         try {
             exchangeRateFromRon = bank.getExchangeRate("RON", account.getCurrency());

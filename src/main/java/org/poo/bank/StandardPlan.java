@@ -2,7 +2,7 @@ package org.poo.bank;
 
 public class StandardPlan extends ServicePlan {
     public StandardPlan(Bank bank) {
-        super("Standard", 0.2, bank);
+        super("Standard", 0.002, bank);
         upgradeLevel = 1;
     }
 

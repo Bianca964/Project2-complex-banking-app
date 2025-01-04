@@ -2,7 +2,7 @@ package org.poo.bank;
 
 public class SilverPlan extends ServicePlan {
     public SilverPlan(Bank bank) {
-        super("Silver", 0.1, bank);
+        super("Silver", 0.001, bank);
         upgradeLevel = 2;
     }
 

@@ -47,7 +47,7 @@ public class Card {
      * @param account the account of the user
      * @param user the user that owns the account
      * @param command the command input
-     * @throws UnsupportedOperationException if the card does not support post payment
+     * @param convertedAmount the amount to be paid
      */
     public void handlePostPayment(final Account account, final User user,
                                   final CommandInput command, final double convertedAmount) {

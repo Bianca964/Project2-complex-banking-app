@@ -9,6 +9,8 @@ import org.poo.cards.Card;
 import org.poo.cards.OneTimeCard;
 import org.poo.transactions.Transaction;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 
 import static org.poo.utils.Utils.generateIBAN;
@@ -134,9 +136,12 @@ public abstract class Account {
      * @return ObjectNode representing the account
      */
     public ObjectNode transformToObjectNode(final ObjectMapper objectMapper) {
+        // Round to 2 decimal places
+        BigDecimal roundedBalance = new BigDecimal(balance).setScale(2, RoundingMode.HALF_UP);
+
         ObjectNode accountNode = objectMapper.createObjectNode();
         accountNode.put("IBAN", iban);
-        accountNode.put("balance", balance);
+        accountNode.put("balance", roundedBalance.doubleValue());
         accountNode.put("currency", currency);
         accountNode.put("type", type);
 

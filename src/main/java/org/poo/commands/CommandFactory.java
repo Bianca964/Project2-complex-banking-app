@@ -36,6 +36,8 @@ public final class CommandFactory {
             case "changeInterestRate" -> new ChangeInterestRateCommand(commandInput, mapper);
             case "addInterest" -> new AddInterestCommand(commandInput, mapper);
             case "withdrawSavings" -> new WithdrawSavingsCommand(commandInput, mapper);
+            case "upgradePlan" -> new UpgradePlanCommand(commandInput, mapper);
+            case "cashWithdrawal" -> new CashWithdrawalCommand(commandInput, mapper);
             default -> null;
         };
     }

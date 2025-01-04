@@ -53,8 +53,11 @@ public class TransactionService {
         double exchangeRate = bank.getExchangeRate(command.getCurrency(), account.getCurrency());
         double amountInAccountCurrency = command.getAmount() * exchangeRate;
 
-        if (account.hasEnoughBalance(amountInAccountCurrency)) {
-            account.withdraw(amountInAccountCurrency);
+        // comission
+        double amountWithComission = user.getServicePlan().applyComission(amountInAccountCurrency, account.getCurrency());
+
+        if (account.hasEnoughBalance(amountWithComission)) {
+            account.withdraw(amountWithComission);
         } else {
             Transaction transaction = new Transaction.TransactionBuilder()
                     .setDescription("Insufficient funds")
@@ -67,7 +70,16 @@ public class TransactionService {
         }
 
         card.handlePostPayment(account, user, command, amountInAccountCurrency);
+
+        // increase the number of payments of at least 300 RON (useful for the upgradePlan case)
+        double amountInRon = command.getAmount() * bank.getExchangeRate(command.getCurrency(), "RON");
+        if (amountInRon >= 300) {
+            user.increaseMin300payments();
+        }
     }
+
+
+
 
     /**
      * Executes the transfer command
@@ -103,6 +115,12 @@ public class TransactionService {
                 receiverAccount.getCurrency());
         double amountInReceiverCurrency = command.getAmount() * exchangeRate;
 
+
+
+
+
+
+
         Transaction transactionSender = new Transaction.TransactionBuilder()
                 .setDescription(command.getDescription())
                 .setFromAccount(senderAccount)
@@ -124,7 +142,7 @@ public class TransactionService {
                 .build();
 
         try {
-            transactionSender.doTransactionSendMoney();
+            transactionSender.doTransactionSendMoney(senderUser);
         } catch (Exception e) {
             Transaction transactionError = new Transaction.TransactionBuilder()
                     .setDescription(e.getMessage())

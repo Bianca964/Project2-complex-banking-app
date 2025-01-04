@@ -16,17 +16,15 @@ public class WithdrawSavingsCommand extends Command {
     @Override
     public void execute(Bank bank, ObjectNode objectNode) {
         User user = bank.getUserWithAccount(commandInput.getAccount());
-        Account account = bank.getAccountWithIBAN(commandInput.getAccount());
-
 
         if (user != null) {
             try {
                 bank.withdrawSavings(commandInput);
             } catch (Exception e) {
-                //addCommandAndTimestamp(objectNode);
-
+                addCommandAndTimestamp(objectNode);
                 ObjectNode outputNode = mapper.createObjectNode();
                 outputNode.put("error", e.getMessage());
+                objectNode.set("output", outputNode);
             }
         }
     }

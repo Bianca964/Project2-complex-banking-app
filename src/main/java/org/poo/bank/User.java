@@ -19,23 +19,98 @@ public class User {
     @Getter
     @Setter
     private ArrayList<Account> accounts;
-    private final ArrayList<Transaction> transactions;
-    private boolean hasClassicAccount;
+    @Setter
+    @Getter
+    private ServicePlan servicePlan;
+    private int min300payments;
 
-    public User(final UserInput userInfo) {
+    private final ArrayList<Transaction> transactions;
+    private int nrClassicAccounts;
+
+    public User(final UserInput userInfo, final Bank bank) {
         this.userInfo = userInfo;
+        if (userInfo.getOccupation().equals("student")) {
+            this.servicePlan = new StudentPlan(bank);
+        } else {
+            this.servicePlan = new StandardPlan(bank);
+        }
+
         this.accounts = new ArrayList<>();
         this.transactions = new ArrayList<>();
-        this.hasClassicAccount = false;
+        this.nrClassicAccounts = 0;
+        this.min300payments = 0;
     }
 
-    public void setHasClassicAccount() {
-        this.hasClassicAccount = true;
+    public void incrementNrClassicAccounts() {
+        nrClassicAccounts++;
     }
 
     public boolean hasClassicAccount() {
-        return hasClassicAccount;
+        if (nrClassicAccounts >= 1) {
+            return true;
+        }
+        return false;
     }
+
+    public void increaseMin300payments() {
+        min300payments++;
+    }
+
+    public void upgradePlan(Account account, final Bank bank, final int timestamp, final String newPlanType) throws Exception {
+
+        // if user has silver plan, make the automatic upgrade to gold plan (without fee)
+        if (min300payments >= 5 && this.servicePlan.getName().equals("Silver")) {
+            this.servicePlan = new GoldPlan(bank);
+            return;
+        }
+
+        String currentPlanName = this.servicePlan.getName();
+        if (newPlanType.equals(currentPlanName)) {
+            throw new Exception("The user already has the " + newPlanType + " plan");
+        }
+
+        ServicePlan newServicePlan = switch (newPlanType) {
+            case "student" -> new StudentPlan(bank);
+            case "standard" -> new StandardPlan(bank);
+            case "gold" -> new GoldPlan(bank);
+            case "silver" -> new SilverPlan(bank);
+            default -> throw new Exception("Invalid plan type");
+        };
+
+        if (newServicePlan.getUpgradeLevel() < this.servicePlan.getUpgradeLevel()) {
+            throw new Exception("You cannot downgrade your plan.");
+        }
+
+        // upgrade the plan
+        // NU VERIFIC DACA FAC UPGRADE DE LA STUDENT LA STANDARD SAU INVERS
+        double exchangeRateFromRon = 0.0;
+        try {
+            exchangeRateFromRon = bank.getExchangeRate("RON", account.getCurrency());
+        } catch (Exception e) {
+            return;
+        }
+        double feeInRon = this.servicePlan.getUpgradeFee(newPlanType);
+        double feeInAccountCurrency = feeInRon * exchangeRateFromRon;
+        if (account.getBalance() < feeInAccountCurrency) {
+            throw new Exception("Insufficient funds");
+        }
+
+        account.withdraw(feeInAccountCurrency);
+        this.servicePlan = newServicePlan;
+
+        // add successful upgrade to user's transactions
+        Transaction transaction = new Transaction.TransactionBuilder()
+                .setTimestamp(timestamp)
+                .setDescription("Upgrade plan")
+                .setAccountIbanUpgradePlan(account.getIban())
+                .setNewPlanType(newPlanType)
+                .build();
+        this.addTransaction(transaction);
+    }
+
+
+
+
 
     /**
      * @param cardNumber the card number which will be deleted
@@ -181,6 +256,12 @@ public class User {
                 throw new Exception("Account couldn't be deleted - see org.poo.transactions "
                         + "for details");
             }
+
+            // if account is of type classic account, decrement the number of classic accounts
+            if (!account.hasInterest()) {
+                nrClassicAccounts--;
+            }
+
             accounts.remove(account);
         }
     }

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Getter;
 import org.poo.accounts.Account;
+import org.poo.bank.User;
 
 import java.util.List;
 
@@ -17,7 +18,7 @@ public final class Transaction {
     // sendMoney
     private final Account fromAccount;
     private final Account toAccount;
-    private final double amountSender;
+    private double amountSender;
     private final double amountReceiver;
     private final String transferType;
 
@@ -35,6 +36,11 @@ public final class Transaction {
     private final double amountSplitted;
     private final List<String> involvedAccounts;
     private final String error;
+
+    // upgradePlan
+    private final String newPlanType;
+    private final String accountIbanUpgradePlan;
+    // + accountIBAN (already declared)
 
     // private constructor for forcing the use of the Builder
     private Transaction(final TransactionBuilder builder) {
@@ -54,6 +60,8 @@ public final class Transaction {
         this.amountSplitted = builder.amountSplitted;
         this.involvedAccounts = builder.involvedAccounts;
         this.error = builder.error;
+        this.newPlanType = builder.newPlanType;
+        this.accountIbanUpgradePlan = builder.accountIbanUpgradePlan;
     }
 
     public static final class TransactionBuilder {
@@ -73,6 +81,18 @@ public final class Transaction {
         private List<String> involvedAccounts;
         private String error;
         private String transferType;
+        private String newPlanType;
+        private String accountIbanUpgradePlan;
+
+        public TransactionBuilder setAccountIbanUpgradePlan(final String argAccountIbanUpgradePlan) {
+            this.accountIbanUpgradePlan = argAccountIbanUpgradePlan;
+            return this;
+        }
+
+        public TransactionBuilder setNewPlanType(final String argNewPlanType) {
+            this.newPlanType = argNewPlanType;
+            return this;
+        }
 
         /**
          * @param argTransferType the type of the transaction ("sent" or "received")
@@ -219,7 +239,7 @@ public final class Transaction {
      * Executes the sendMoney command
      * @throws Exception if the sender does not have enough money in the account
      */
-    public void doTransactionSendMoney() throws Exception {
+    public void doTransactionSendMoney(User sender) throws Exception {
         if (amountSender <= 0 || fromAccount == null || toAccount == null) {
             return;
         }
@@ -227,7 +247,10 @@ public final class Transaction {
             throw new Exception("Insufficient funds");
         }
 
-        fromAccount.withdraw(amountSender);
+        // apply comission
+        double amountSenderWithComission = sender.getServicePlan().applyComission(amountSender, fromAccount.getCurrency());
+
+        fromAccount.withdraw(amountSenderWithComission);
         toAccount.deposit(amountReceiver);
     }
 
@@ -299,6 +322,15 @@ public final class Transaction {
                 accountsArray.add(account);
             }
             objectNode.set("involvedAccounts", accountsArray);
+        }
+
+        // upgradePlan
+        if (newPlanType != null) {
+            objectNode.put("newPlanType", newPlanType);
+        }
+
+        if (accountIbanUpgradePlan != null) {
+            objectNode.put("accountIBAN", accountIbanUpgradePlan);
         }
 
         return objectNode;

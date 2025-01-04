@@ -28,7 +28,7 @@ public final class Bank extends ExchangeRate {
         super(exchangeRates);
         this.users = new ArrayList<>();
         for (UserInput user : users) {
-            this.users.add(new User(user));
+            this.users.add(new User(user, this));
         }
     }
 
@@ -52,16 +52,21 @@ public final class Bank extends ExchangeRate {
         bank = null;
     }
 
+
+
     public void withdrawSavings(CommandInput commandInput) throws Exception {
 
         User user = this.getUserWithAccount(commandInput.getAccount());
         Account savingsAccount = this.getAccountWithIBAN(commandInput.getAccount());
+
+        System.out.println("a intrat in withdrawSavings");
 
         if (user == null) {
             return;
         }
 
         if (user.getAge() < 21) {
+            System.out.println("a intrat in withdrawSavings age");
             Transaction transaction = new Transaction.TransactionBuilder()
                     .setTimestamp(commandInput.getTimestamp())
                     .setDescription("You don't have the minimum age required.")
@@ -72,6 +77,7 @@ public final class Bank extends ExchangeRate {
         }
 
         if (!user.hasClassicAccount()) {
+            System.out.println("a intrat in withdrawSavings classic-dont have a classic account");
             Transaction transaction = new Transaction.TransactionBuilder()
                     .setTimestamp(commandInput.getTimestamp())
                     .setDescription("You do not have a classic account.")
@@ -82,10 +88,12 @@ public final class Bank extends ExchangeRate {
         }
 
         if (savingsAccount == null) {
+            System.out.println("a intrat in withdrawSavings account not found");
             throw new Exception("Account not found");
         }
 
         if (!savingsAccount.hasInterest()) {
+            System.out.println("a intrat in withdrawSavings account not of type savings");
             Transaction transaction = new Transaction.TransactionBuilder()
                     .setTimestamp(commandInput.getTimestamp())
                     .setDescription("Account is not of type savings.")
@@ -98,24 +106,21 @@ public final class Bank extends ExchangeRate {
         double exchangeRate = this.getExchangeRate(commandInput.getCurrency(), savingsAccount.getCurrency());
         double convertedAmount = commandInput.getAmount() * exchangeRate;
 
-        // tb convertita suma
         if (!savingsAccount.hasEnoughBalance(convertedAmount)) {
+            System.out.println("a intrat in withdrawSavings insufficient funds");
             throw new Exception("Insufficient funds");
         }
 
-        System.out.println("Savings account balance before: " + savingsAccount.getBalance());
         savingsAccount.withdraw(convertedAmount);
-        System.out.println("Savings account balance after: " + savingsAccount.getBalance());
+        System.out.println("a retras din savings account");
 
         // deposit amount in classic account
         String currency = commandInput.getCurrency();
-
         for (Account account : user.getAccounts()) {
             // if it s a classic account
             if (!account.hasInterest() && account.getCurrency().equals(currency)) {
-                System.out.println("Classic account balance before: " + account.getBalance());
                 account.deposit(commandInput.getAmount());
-                System.out.println("Classic account balance after: " + account.getBalance());
+                System.out.println("a depositat in classic account din savings account ");
 
                 // create transaction
                 Transaction transaction = new Transaction.TransactionBuilder()
@@ -350,7 +355,7 @@ public final class Bank extends ExchangeRate {
         if (user != null) {
             user.addAccount(account);
             if (accountType.equals("classic")) {
-                user.setHasClassicAccount();
+                user.incrementNrClassicAccounts();
             }
 
             // add to the transaction list

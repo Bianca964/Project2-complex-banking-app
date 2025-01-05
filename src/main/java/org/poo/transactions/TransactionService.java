@@ -76,6 +76,74 @@ public class TransactionService {
         if (amountInRon >= 300) {
             user.increaseMin300payments();
         }
+
+
+
+
+
+        // CASHBACK????????????????????????????????????????????????????????????????????????????????????????????????????????
+        System.out.println("Am ajuns la Cashback");
+        Commerciant commerciant = bank.getCommerciantWithName(command.getCommerciant());
+        if (commerciant == null) {
+            return;
+        }
+        System.out.println("Am gasit comerciantul");
+
+        // if user already has the commerciant, increment the number of transactions
+        if (user.getCommerciant(commerciant) != null) {
+            user.incrementNrOfTrnscForCommerciant(commerciant);
+        } else {
+            // if user doesn't have the commerciant, add it to user
+            user.addCommerciant(commerciant);
+            user.getCommerciant(commerciant).setNrTransactions(1);
+            System.out.println("Am adaugat comerciantul");
+        }
+
+
+        // IF IT S OF TYPE NROFTRANSACTION
+        if (commerciant.getCashbackStrategy().equals("nrOfTransactions")) {
+
+            // vad daca am vreun discount disponibil sa l aplic si dupa il fac pe asta disponibil
+            if (user.hasDiscountAvailable()) {
+                user.applyDiscount(account, commerciant, amountInAccountCurrency);
+            }
+
+            if (commerciant.getNrTransactions() == 2 && !user.isDiscountFoodUsed()) {
+                user.setDiscountFood();
+            }
+            if (commerciant.getNrTransactions() == 5 && !user.isDiscountClothesUsed()) {
+                user.setDiscountClothes();
+            }
+            if (commerciant.getNrTransactions() == 10 && !user.isDiscountTechUsed()) {
+                user.setDiscountTech();
+            }
+
+
+        }
+
+
+
+        if (commerciant.getCashbackStrategy().equals("spendingThreshold")) {
+
+            System.out.println("Am ajuns la Spending Threshold");
+
+            // vad daca am vreun discount disponibil sa l aplic si dupa il fac pe asta disponibil
+            if (user.hasDiscountAvailable()) {
+                user.applyDiscount(account, commerciant, amountInAccountCurrency);
+            }
+
+            System.out.println("ttalAmount spent for threshld before: " + user.getTotalAmountForSpendingThreshold());
+            user.addAmountForSpendingThreshold(amountInRon);
+            System.out.println("ttalAmount spent for threshld after: " + user.getTotalAmountForSpendingThreshold());
+
+            user.applySpendingThresholdDiscount(account, amountInAccountCurrency);
+            System.out.println("Am aplicat discountul de la spending threshold");
+        }
+
+
+
+
+
     }
 
 
@@ -97,6 +165,8 @@ public class TransactionService {
             return;
         }
 
+        // DACA RECEIVER E NULL, PROBABIL E COMMRCIANT SI SE RRETRAG BANI DIN CONT DOAR CU EVENTUAL COMOSION SI CASHBACK
+
         // account is either nonexistent or has an alias as input and the sender can't have alias
         if (senderAccount == null) {
             return;
@@ -114,11 +184,6 @@ public class TransactionService {
         double exchangeRate = bank.getExchangeRate(senderAccount.getCurrency(),
                 receiverAccount.getCurrency());
         double amountInReceiverCurrency = command.getAmount() * exchangeRate;
-
-
-
-
-
 
 
         Transaction transactionSender = new Transaction.TransactionBuilder()

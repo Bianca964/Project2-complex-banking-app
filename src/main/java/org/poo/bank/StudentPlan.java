@@ -2,7 +2,7 @@ package org.poo.bank;
 
 public class StudentPlan extends ServicePlan {
     public StudentPlan(Bank bank) {
-        super("Student", 0.0, bank);
+        super("student", 0.0, bank);
         upgradeLevel = 1;
     }
 

@@ -7,8 +7,8 @@ import lombok.Getter;
 import lombok.Setter;
 import org.poo.accounts.Account;
 import org.poo.cards.Card;
-import org.poo.fileio.CommandInput;
 import org.poo.fileio.UserInput;
+import org.poo.transactions.Commerciant;
 import org.poo.transactions.Transaction;
 
 import java.util.ArrayList;
@@ -24,9 +24,216 @@ public class User {
     @Getter
     private ServicePlan servicePlan;
     private int min300payments;
-
     private final ArrayList<Transaction> transactions;
     private int nrClassicAccounts;
+
+
+    private ArrayList<Commerciant> commerciants;
+//    private int nrOfTrnscPayments;
+//    private int spendgsThresholdPayments;
+
+    private boolean discountFood;
+    private boolean discoutClothes;
+    private boolean discountTech;
+
+    private boolean discountFoodWasUsed;
+    private boolean discountClothesWasUsed;
+    private boolean discountTechWasUsed;
+
+    @Setter
+    @Getter
+    private double totalAmountForSpendingThreshold;
+
+//    enum DiscountType {
+//        FOOD,
+//        CLOTHES,
+//        TECH
+//    }
+
+
+
+
+    // NrOfTransactions
+    public boolean hasDiscountAvailable() {
+        return this.discountFood || this.discoutClothes || this.discountTech;
+    }
+
+    public void applyDiscount(Account account, Commerciant commerciant, double amountSpent) {
+        if (commerciant.getType().equals("Food")) {
+            applyFoodDiscount(account, amountSpent);
+        } else if (commerciant.getType().equals("Clothes")) {
+            applyClothesDiscount(account, amountSpent);
+        } else if (commerciant.getType().equals("Tech")) {
+            applyTechDiscount(account, amountSpent);
+        }
+    }
+
+    public void applyFoodDiscount(Account account, double amountSpent) {
+        if (this.discountFood && !this.discountFoodWasUsed) {
+            account.deposit(amountSpent * 0.02);
+            this.discountFoodWasUsed = true;
+            this.discountFood = false;
+        }
+    }
+
+    public void applyClothesDiscount(Account account, double amountSpent) {
+        if (this.discoutClothes && !this.discountClothesWasUsed) {
+            account.deposit(amountSpent * 0.05);
+            this.discountClothesWasUsed = true;
+            this.discoutClothes = false;
+        }
+    }
+
+    public void applyTechDiscount(Account account, double amountSpent) {
+        if (this.discountTech && !this.discountTechWasUsed) {
+            account.deposit(amountSpent * 0.1);
+            this.discountTechWasUsed = true;
+            this.discountTech = false;
+        }
+    }
+
+
+
+    public Commerciant getCommerciant(final String name) {
+        for (Commerciant commerciant : commerciants) {
+            if (commerciant.getName().equals(name)) {
+                return commerciant;
+            }
+        }
+        return null;
+    }
+
+    public Commerciant getCommerciant(final Commerciant wantedCommerciant) {
+        for (Commerciant c : commerciants) {
+            if (c.getName().equals(wantedCommerciant.getName())) {
+                return c;
+            }
+        }
+        return null;
+    }
+
+    public void addCommerciant(final Commerciant commerciant) {
+        commerciants.add(commerciant);
+    }
+
+    public void incrementNrOfTrnscForCommerciant(final Commerciant commerciant) {
+        if (commerciant != null) {
+            commerciant.incrementNrTransactions();
+        }
+    }
+
+    public void setDiscountFood() {
+        if (this.discountFoodWasUsed) {
+            return;
+        }
+        this.discountFood = true;
+    }
+
+    public void setDiscountClothes() {
+        if (this.discountClothesWasUsed) {
+            return;
+        }
+        this.discoutClothes = true;
+    }
+
+    public void setDiscountTech() {
+        if (this.discountTechWasUsed) {
+            return;
+        }
+        this.discountTech = true;
+    }
+
+    public void setDiscountFoodAsUsed() {
+        this.discountFoodWasUsed = true;
+    }
+
+    public void setDiscountClothesAsUsed() {
+        this.discountClothesWasUsed = true;
+    }
+
+    public void setDiscountTechAsUsed() {
+        this.discountTechWasUsed = true;
+    }
+
+    public boolean isDiscountFoodUsed() {
+        return this.discountFoodWasUsed;
+    }
+
+    public boolean isDiscountClothesUsed() {
+        return this.discountClothesWasUsed;
+    }
+
+    public boolean isDiscountTechUsed() {
+        return this.discountTechWasUsed;
+    }
+
+
+
+
+
+
+    // SPENDING THRESHOLD
+    public void addAmountForSpendingThreshold(final double amount) {
+        this.totalAmountForSpendingThreshold += amount;
+    }
+
+    public void applySpendingThresholdDiscount(Account account, double amountSpent) {
+        if (this.totalAmountForSpendingThreshold >= 100 && this.totalAmountForSpendingThreshold < 300) {
+            if (this.getServicePlan().getName().equals("student") || this.getServicePlan().getName().equals("standard")) {
+                account.deposit(amountSpent * 0.001);
+            }
+            if (this.getServicePlan().getName().equals("silver")) {
+                account.deposit(amountSpent * 0.003);
+            }
+            if (this.getServicePlan().getName().equals("gold")) {
+                account.deposit(amountSpent * 0.005);
+            }
+        }
+
+
+
+        if (this.totalAmountForSpendingThreshold >= 300 && this.totalAmountForSpendingThreshold < 500) {
+            System.out.println("pot sa aplic cashnack");
+            if (this.getServicePlan().getName().equals("student") || this.getServicePlan().getName().equals("standard")) {
+                System.out.println("student sau standard");
+                System.out.println("Account balance before= " + account.getBalance());
+                account.deposit(amountSpent * 0.002);
+                System.out.println("Account balance after= " + account.getBalance());
+            }
+            if (this.getServicePlan().getName().equals("silver")) {
+                System.out.println("silver");
+                account.deposit(amountSpent * 0.004);
+            }
+            if (this.getServicePlan().getName().equals("gold")) {
+                System.out.println("gold");
+                account.deposit(amountSpent * 0.0055);
+            }
+        }
+
+
+        if (this.totalAmountForSpendingThreshold >= 500) {
+            if (this.getServicePlan().getName().equals("student") || this.getServicePlan().getName().equals("standard")) {
+                account.deposit(amountSpent * 0.0025);
+            }
+            if (this.getServicePlan().getName().equals("silver")) {
+                account.deposit(amountSpent * 0.005);
+            }
+            if (this.getServicePlan().getName().equals("gold")) {
+                account.deposit(amountSpent * 0.007);
+            }
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
 
     public User(final UserInput userInfo, final Bank bank) {
         this.userInfo = userInfo;
@@ -40,7 +247,20 @@ public class User {
         this.transactions = new ArrayList<>();
         this.nrClassicAccounts = 0;
         this.min300payments = 0;
+
+        this.commerciants = new ArrayList<>();
+        this.discountFood = false;
+        this.discoutClothes = false;
+        this.discountTech = false;
+
+        this.discountFoodWasUsed = false;
+        this.discountClothesWasUsed = false;
+        this.discountTechWasUsed = false;
+
+        this.totalAmountForSpendingThreshold = 0;
     }
+
+
 
     public void incrementNrClassicAccounts() {
         nrClassicAccounts++;
@@ -60,7 +280,7 @@ public class User {
     public void upgradePlan(Account account, final Bank bank, final int timestamp, final String newPlanType) throws Exception {
 
         // if user has silver plan, make the automatic upgrade to gold plan (without fee)
-        if (min300payments >= 5 && this.servicePlan.getName().equals("Silver")) {
+        if (min300payments >= 5 && this.servicePlan.getName().equals("silver")) {
             this.servicePlan = new GoldPlan(bank);
             return;
         }

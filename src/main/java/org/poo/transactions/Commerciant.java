@@ -9,20 +9,16 @@ import org.poo.fileio.CommerciantInput;
 @Getter
 @Setter
 public class Commerciant {
-//    private final String name;
-//    private double totalAmountSpent;
-
-//    public Commerciant(final String name, final double totalAmountSpent) {
-//        this.name = name;
-//        this.totalAmountSpent = totalAmountSpent;
-//    }
-
     private String name;
     private int id;
     private String account;
     private String type;
     private String cashbackStrategy;
     private double totalAmountSpent;
+
+    @Setter
+    @Getter
+    private int nrTransactions;
 
     public Commerciant(CommerciantInput commerciantInput) {
         this.name = commerciantInput.getCommerciant();
@@ -31,6 +27,7 @@ public class Commerciant {
         this.type = commerciantInput.getType();
         this.cashbackStrategy = commerciantInput.getCashbackStrategy();
         this.totalAmountSpent = 0;
+        this.nrTransactions = 0;
     }
 
     public Commerciant(Commerciant commerciant, double totalAmountSpent) {
@@ -40,6 +37,18 @@ public class Commerciant {
         this.type = commerciant.getType();
         this.cashbackStrategy = commerciant.getCashbackStrategy();
         this.totalAmountSpent = totalAmountSpent;
+    }
+
+    public void incrementNrTransactions() {
+        this.nrTransactions++;
+    }
+
+    public boolean isNrOfTransactionType() {
+        return cashbackStrategy.equals("nrOfTransactions");
+    }
+
+    public boolean isSpendingThresholdType() {
+        return cashbackStrategy.equals("spendingThreshold");
     }
 
     /**

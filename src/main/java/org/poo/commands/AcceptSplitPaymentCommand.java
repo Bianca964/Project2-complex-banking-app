@@ -1,0 +1,33 @@
+package org.poo.commands;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.poo.bank.Bank;
+import org.poo.bank.User;
+import org.poo.fileio.CommandInput;
+import org.poo.transactions.SplitPayment;
+
+public class AcceptSplitPaymentCommand extends Command {
+    public AcceptSplitPaymentCommand(CommandInput commandInput, ObjectMapper mapper) {
+        super(commandInput, mapper);
+    }
+
+    @Override
+    public void execute(Bank bank, ObjectNode objectNode) {
+
+        // after every accept, verify if the transaction can be executed (has all accepts)
+        User user = bank.getUserWithEmail(commandInput.getEmail());
+        if (user == null) {
+            return;
+        }
+        SplitPayment splitPayment = user.acceptSplitPayment(commandInput.getSplitPaymentType());
+
+        // execute split payment only if everyone has accepted
+        if (splitPayment != null) {
+            if (splitPayment.everyoneHasAccepted()) {
+                splitPayment.execute();
+            }
+        }
+
+    }
+}

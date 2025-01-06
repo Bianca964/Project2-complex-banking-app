@@ -9,6 +9,8 @@ import org.poo.fileio.CommandInput;
 import org.poo.transactions.Commerciant;
 import org.poo.transactions.Transaction;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.TreeMap;
 
 public final class SpendingsReport implements ReportGenerator {
@@ -36,9 +38,11 @@ public final class SpendingsReport implements ReportGenerator {
             throw new Exception("This kind of report is not supported for a saving account");
         }
 
+        BigDecimal roundedBalance = new BigDecimal(account.getBalance()).setScale(2, RoundingMode.HALF_UP);
+
         ObjectNode outputNode = mapper.createObjectNode();
         outputNode.put("IBAN", account.getIban());
-        outputNode.put("balance", account.getBalance());
+        outputNode.put("balance", roundedBalance.doubleValue());
         outputNode.put("currency", account.getCurrency());
 
         // transaction output

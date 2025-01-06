@@ -22,6 +22,11 @@ public class TransactionService {
      * @throws Exception if the user or the account is not found
      */
     public void payOnline(final CommandInput command) throws Exception {
+
+        if (command.getAmount() <= 0) {
+            return;
+        }
+
         User user = bank.getUserWithEmail(command.getEmail());
         if (user == null) {
             return;
@@ -35,6 +40,11 @@ public class TransactionService {
         Card card = account.getCard(command.getCardNumber());
         if (card == null) {
             throw new Exception("Card not found");
+        }
+
+        Commerciant commerciant = bank.getCommerciantWithName(command.getCommerciant());
+        if (commerciant == null) {
+            throw new Exception("Commerciant not found");
         }
 
         // if the card is frozen, don't do the transaction
@@ -78,73 +88,60 @@ public class TransactionService {
         }
 
 
+        // CASHBACK
+        applyCashBack(commerciant, user, account, amountInAccountCurrency, amountInRon);
+    }
 
 
-
-        // CASHBACK????????????????????????????????????????????????????????????????????????????????????????????????????????
-        System.out.println("Am ajuns la Cashback");
-        Commerciant commerciant = bank.getCommerciantWithName(command.getCommerciant());
-        if (commerciant == null) {
-            return;
-        }
-        System.out.println("Am gasit comerciantul");
+    /**
+     *
+     * @param commerciant to which the payment was made
+     * @param sender the one who made the payment
+     * @param senderAccount the account from which the payment was made (which receives the cashback)
+     * @param amountInAccountCurrency the amount of the payment in the sender's account currency
+     * @param amountInRon the amount of the payment in RON
+     */
+    public void applyCashBack(Commerciant commerciant, User sender, Account senderAccount, double amountInAccountCurrency, double amountInRon) {
 
         // if user already has the commerciant, increment the number of transactions
-        if (user.getCommerciant(commerciant) != null) {
-            user.incrementNrOfTrnscForCommerciant(commerciant);
+        if (sender.getCommerciant(commerciant) != null) {
+            sender.incrementNrOfTrnscForCommerciant(commerciant);
         } else {
             // if user doesn't have the commerciant, add it to user
-            user.addCommerciant(commerciant);
-            user.getCommerciant(commerciant).setNrTransactions(1);
-            System.out.println("Am adaugat comerciantul");
+            sender.addCommerciant(commerciant);
+            sender.getCommerciant(commerciant).setNrTransactions(1);
         }
 
-
-        // IF IT S OF TYPE NROFTRANSACTION
         if (commerciant.getCashbackStrategy().equals("nrOfTransactions")) {
-
-            // vad daca am vreun discount disponibil sa l aplic si dupa il fac pe asta disponibil
-            if (user.hasDiscountAvailable()) {
-                user.applyDiscount(account, commerciant, amountInAccountCurrency);
+            // if there is a discount available, apply it and then add another if possible
+            if (sender.hasDiscountAvailable()) {
+                sender.applyDiscount(senderAccount, commerciant, amountInAccountCurrency);
             }
 
-            if (commerciant.getNrTransactions() == 2 && !user.isDiscountFoodUsed()) {
-                user.setDiscountFood();
+            if (commerciant.getNrTransactions() == 2 && !sender.isDiscountFoodUsed()) {
+                sender.setDiscountFood();
             }
-            if (commerciant.getNrTransactions() == 5 && !user.isDiscountClothesUsed()) {
-                user.setDiscountClothes();
+            if (commerciant.getNrTransactions() == 5 && !sender.isDiscountClothesUsed()) {
+                sender.setDiscountClothes();
             }
-            if (commerciant.getNrTransactions() == 10 && !user.isDiscountTechUsed()) {
-                user.setDiscountTech();
+            if (commerciant.getNrTransactions() == 10 && !sender.isDiscountTechUsed()) {
+                sender.setDiscountTech();
             }
-
-
         }
-
-
 
         if (commerciant.getCashbackStrategy().equals("spendingThreshold")) {
-
-            System.out.println("Am ajuns la Spending Threshold");
-
-            // vad daca am vreun discount disponibil sa l aplic si dupa il fac pe asta disponibil
-            if (user.hasDiscountAvailable()) {
-                user.applyDiscount(account, commerciant, amountInAccountCurrency);
+            // if there is a discount available, apply it and then add another if possible
+            if (sender.hasDiscountAvailable()) {
+                sender.applyDiscount(senderAccount, commerciant, amountInAccountCurrency);
             }
 
-            System.out.println("ttalAmount spent for threshld before: " + user.getTotalAmountForSpendingThreshold());
-            user.addAmountForSpendingThreshold(amountInRon);
-            System.out.println("ttalAmount spent for threshld after: " + user.getTotalAmountForSpendingThreshold());
-
-            user.applySpendingThresholdDiscount(account, amountInAccountCurrency);
-            System.out.println("Am aplicat discountul de la spending threshold");
+            sender.addAmountForSpendingThreshold(amountInRon);
+            sender.applySpendingThresholdDiscount(senderAccount, amountInAccountCurrency);
         }
-
-
-
-
-
     }
+
+
+
 
 
 
@@ -161,17 +158,30 @@ public class TransactionService {
         User senderUser = bank.getUserWithAccount(command.getAccount());
         User receiverUser = bank.getUserWithAccount(command.getReceiver());
 
-        if (user == null || senderUser == null || receiverUser == null) {
-            return;
+        if (user == null || senderUser == null || command.getReceiver().isEmpty()) {
+            throw new Exception("User not found");
         }
-
-        // DACA RECEIVER E NULL, PROBABIL E COMMRCIANT SI SE RRETRAG BANI DIN CONT DOAR CU EVENTUAL COMOSION SI CASHBACK
 
         // account is either nonexistent or has an alias as input and the sender can't have alias
         if (senderAccount == null) {
             return;
         }
 
+
+
+        // The receiver is a commerciant (the IBAN belongs to a commerciant)
+        Commerciant receiverCommerciant;
+        if (receiverUser == null) {
+            receiverCommerciant = bank.getCommerciantWithIban(command.getReceiver());
+            if (receiverCommerciant != null) {
+                sendMoneyToCommerciant(senderUser, senderAccount, receiverCommerciant, command);
+            }
+            return;
+        }
+
+
+
+        // if the receiver is not a commerciant (receiverUser != null), find the account by IBAN
         if (receiverAccount == null) {
             // find the account by alias
             receiverAccount = bank.getAccountWithAlias(command.getReceiver());
@@ -180,11 +190,11 @@ public class TransactionService {
             }
         }
 
+        // start the transaction to another user
         // convert amount to receiver currency
         double exchangeRate = bank.getExchangeRate(senderAccount.getCurrency(),
                 receiverAccount.getCurrency());
         double amountInReceiverCurrency = command.getAmount() * exchangeRate;
-
 
         Transaction transactionSender = new Transaction.TransactionBuilder()
                 .setDescription(command.getDescription())
@@ -228,104 +238,49 @@ public class TransactionService {
         receiverAccount.addTransaction(transactionReceiver);
     }
 
-    /**
-     * Checks if everyone has enough balance for a split payment
-     * @param accounts list of accounts involved in the split payment
-     * @param amount the amount of each user to pay in the given currency
-     * @param currency the currency in which the amount is given
-     * @return the last account that has insufficient funds or null if everyone has enough money
-     */
-    public Account everyoneHasEnoughBalance(final List<Account> accounts, final double amount,
-                                            final String currency) {
-        Account brokenAccount = null;
-        for (Account account : accounts) {
-            double amountInAccountCurrency = 0;
-            try {
-                double exchangeRate = bank.getExchangeRate(currency, account.getCurrency());
-                amountInAccountCurrency = amount * exchangeRate;
-            } catch (Exception e) {
-                brokenAccount = account;
-            }
-            if (!account.hasEnoughBalance(amountInAccountCurrency)) {
-                brokenAccount = account;
-            }
-        }
-        return brokenAccount;
-    }
 
-    /**
-     * Executes the split payment command
-     * @param commandInput the object with the whole input
-     */
-    public void splitPayment(final CommandInput commandInput) {
-        List<String> accountsInput = commandInput.getAccounts();
-        List<Account> accounts = new ArrayList<>();
-        for (String accountIBAN : accountsInput) {
-            Account account = bank.getAccountWithIBAN(accountIBAN);
-            if (account != null) {
-                accounts.add(account);
-            }
-        }
 
-        double amount = commandInput.getAmount();
-        double amountToPay = amount / accounts.size();
 
-        // if not everyone has enough money (if brokenAccount is null, everyone has enough money)
-        Account brokenAccount = everyoneHasEnoughBalance(accounts, amountToPay,
-                commandInput.getCurrency());
-        if (brokenAccount != null) {
-            for (Account account : accounts) {
-                Transaction transaction = new Transaction.TransactionBuilder()
-                        .setDescription("Split payment of " + String.format("%.2f", amount)
-                                + " " + commandInput.getCurrency())
-                        .setError("Account " + brokenAccount.getIban()
-                                + " has insufficient funds for a split payment.")
-                        .setTimestamp(commandInput.getTimestamp())
-                        .setCurrency(commandInput.getCurrency())
-                        .setAmountSplitted(amountToPay)
-                        .setInvolvedAccounts(accountsInput)
-                        .build();
 
-                User user = bank.getUserWithAccount(account.getIban());
-                if (user == null) {
-                    return;
-                }
-                user.addTransaction(transaction);
-                account.addTransaction(transaction);
-            }
+
+    public void sendMoneyToCommerciant(User senderUser, Account senderAccount, Commerciant receiverCommerciant, CommandInput command) {
+        // withdraw the amount from the sender's account
+        double amountSender = command.getAmount();
+        double amountSenderWithComission = senderUser.getServicePlan().applyComission(amountSender, senderAccount.getCurrency());
+
+        if (senderAccount.hasEnoughBalance(amountSenderWithComission)) {
+            senderAccount.withdraw(amountSenderWithComission);
+        } else {
+            Transaction transaction = new Transaction.TransactionBuilder()
+                    .setDescription("Insufficient funds")
+                    .setTimestamp(command.getTimestamp())
+                    .build();
+
+            senderUser.addTransaction(transaction);
+            senderAccount.addTransaction(transaction);
             return;
         }
 
-        // everyone has enough money, do the transactions
-        for (Account account : accounts) {
-            double amountInAccountCurrency;
-            try {
-                double exchangeRate = bank.getExchangeRate(commandInput.getCurrency(),
-                        account.getCurrency());
-                amountInAccountCurrency = amountToPay * exchangeRate;
-            } catch (Exception e) {
-                // if no exchange rate is found, don't do the transaction
-                return;
-            }
-            account.withdraw(amountInAccountCurrency);
 
-            Transaction transaction = new Transaction.TransactionBuilder()
-                    .setDescription("Split payment of " + String.format("%.2f", amount)
-                            + " " + commandInput.getCurrency())
-                    .setTimestamp(commandInput.getTimestamp())
-                    .setCurrency(commandInput.getCurrency())
-                    .setAmountSplitted(amountToPay)
-                    .setInvolvedAccounts(accountsInput)
-                    .build();
+        // acum teoretic ar trebui sa adaug tranzactiile reusite la sender si receiver(commerciant)
 
-            User user = bank.getUserWithAccount(account.getIban());
-            if (user == null) {
-                return;
-            }
-            user.addTransaction(transaction);
-            account.addTransaction(transaction);
+        // cashback
+        double exchangeRate;
+        try {
+            exchangeRate = bank.getExchangeRate(senderAccount.getCurrency(), "RON");
+        } catch (Exception e) {
+            return;
         }
+        double amountInRon = amountSender * exchangeRate;
+
+        applyCashBack(receiverCommerciant, senderUser, senderAccount, amountSender, amountInRon);
     }
+
+
+
+
+
+
 
 
 
@@ -388,7 +343,8 @@ public class TransactionService {
         // withdraw cash from the account
         account.withdraw(amountWithComission);
         Transaction transaction = new Transaction.TransactionBuilder()
-                .setDescription("Cash withdrawal of " + amountInAccountCurrency)
+                //.setDescription("Cash withdrawal of " + amountInAccountCurrency)
+                .setDescription("Cash withdrawal of " + commandInput.getAmount())
                 .setTimestamp(commandInput.getTimestamp())
                 .setAmountCashWithdrawal(amountInRon)
                 .build();

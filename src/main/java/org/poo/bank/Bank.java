@@ -255,18 +255,46 @@ public final class Bank extends ExchangeRate {
      * @param accountIBAN the IBAN of the account whose interest is added
      * @throws Exception if the account is not found or if it is not a savings account
      */
-    public void addInterest(final String accountIBAN) throws Exception {
+    public void addInterest(final String accountIBAN, final int timestamp) throws Exception {
         Account account = getAccountWithIBAN(accountIBAN);
         if (account == null) {
             throw new Exception("Account not found");
         }
 
         if (account.hasInterest()) {
-            ((SavingsAccount) account).addInterest();
+            double interest = ((SavingsAccount) account).addInterest();
+
+            // add transaction
+            User user = getUserWithAccount(accountIBAN);
+            if (user == null) {
+                return;
+            }
+            Transaction transaction = new Transaction.TransactionBuilder()
+                    .setAmountInterest(interest)
+                    .setCurrencyAddInterest(account.getCurrency())
+                    .setDescription("Interest rate income")
+                    .setTimestamp(timestamp)
+                    .build();
+
+            user.addTransaction(transaction);
+            account.addTransaction(transaction);
         } else {
             throw new Exception("This is not a savings account");
         }
     }
+
+
+
+    public Commerciant getCommerciantWithIban(final String iban) {
+        for (Commerciant commerciant : commerciants) {
+            if (commerciant.getAccountIban().equals(iban)) {
+                return commerciant;
+            }
+        }
+        return null;
+    }
+
+
 
     /**
      * @param iban the IBAN of the account whose alias is set

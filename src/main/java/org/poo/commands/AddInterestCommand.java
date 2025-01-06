@@ -14,7 +14,7 @@ public final class AddInterestCommand extends Command {
     @Override
     public void execute(final Bank bank, final ObjectNode objectNode) {
         try {
-            bank.addInterest(commandInput.getAccount());
+            bank.addInterest(commandInput.getAccount(), commandInput.getTimestamp());
         } catch (Exception e) {
             addCommandAndTimestamp(objectNode);
 

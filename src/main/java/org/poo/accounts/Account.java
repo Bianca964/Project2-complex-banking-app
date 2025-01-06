@@ -12,6 +12,8 @@ import org.poo.transactions.Transaction;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 
 import static org.poo.utils.Utils.generateIBAN;
 
@@ -38,8 +40,6 @@ public abstract class Account {
         this.cards = new ArrayList<>();
         this.transactions = new ArrayList<>();
     }
-
-
 
     /**
      * @param cardNumber the card number of the card to be returned from this account
@@ -113,11 +113,32 @@ public abstract class Account {
     }
 
     /**
-     * Adds a transaction to the account's list of transactions
+     * Adds a transaction to the account's list of transactions (ordered by timestamp)
      * @param transaction the transaction to be added to the account's list of transactions
      */
     public void addTransaction(final Transaction transaction) {
-        transactions.add(transaction);
+//        // comparator to compare transactions by timestamp
+//        Comparator<Transaction> comparator = Comparator.comparingLong(Transaction::getTimestamp);
+//
+//        // use binary search to find the correct position
+//        int index = Collections.binarySearch(transactions, transaction, comparator);
+//
+//        // if index is negative, calculate the insertion position
+//        if (index < 0) {
+//            index = -index - 1;
+//        }
+//
+//        transactions.add(index, transaction);
+
+        int index = 0;
+        for (int i = 0; i < transactions.size(); i++) {
+            if (transactions.get(i).getTimestamp() > transaction.getTimestamp()) {
+                index = i;
+                break;
+            }
+            index = i + 1; // Dacă ajunge la final, se inserează la sfârșit
+        }
+        transactions.add(index, transaction); // Inserăm tranzacția la poziția calculat
     }
 
     /**

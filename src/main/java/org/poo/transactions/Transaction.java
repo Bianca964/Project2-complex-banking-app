@@ -7,6 +7,8 @@ import lombok.Getter;
 import org.poo.accounts.Account;
 import org.poo.bank.User;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 
 @Getter
@@ -31,19 +33,26 @@ public final class Transaction {
     private final String commerciant;
     private final double amountPayOnline;
 
-    // splitTransaction
+    // splitTransactionEqual
     private final String currency;
     private final double amountSplitted;
     private final List<String> involvedAccounts;
     private final String error;
 
+    // splitTransactionCustom
+    private final String splitPaymentType;
+    private final List<Double> amountsSplitTransaction;
+
     // upgradePlan
     private final String newPlanType;
     private final String accountIbanUpgradePlan;
 
-
     // cashWithdrawal
     private final double amountCashWithdrawal;
+
+    // addInterest
+    private final double amountInterest;
+    private final String currencyAddInterest;
 
     // private constructor for forcing the use of the Builder
     private Transaction(final TransactionBuilder builder) {
@@ -66,6 +75,11 @@ public final class Transaction {
         this.newPlanType = builder.newPlanType;
         this.accountIbanUpgradePlan = builder.accountIbanUpgradePlan;
         this.amountCashWithdrawal = builder.amountCashWithdrawal;
+        this.amountInterest = builder.amountInterest;
+        this.currencyAddInterest = builder.currencyAddInterest;
+        this.splitPaymentType = builder.splitPaymentType;
+        this.amountsSplitTransaction = builder.amountsSplitTransaction;
+
     }
 
     public static final class TransactionBuilder {
@@ -88,6 +102,30 @@ public final class Transaction {
         private String newPlanType;
         private String accountIbanUpgradePlan;
         private double amountCashWithdrawal;
+        private double amountInterest;
+        private String currencyAddInterest;
+        private String splitPaymentType;
+        private List<Double> amountsSplitTransaction;
+
+        public TransactionBuilder setSplitPaymentType(final String argSplitPaymentType) {
+            this.splitPaymentType = argSplitPaymentType;
+            return this;
+        }
+
+        public TransactionBuilder setAmountsSplitTransaction(final List<Double> argAmounts) {
+            this.amountsSplitTransaction = argAmounts;
+            return this;
+        }
+
+        public TransactionBuilder setAmountInterest(final double argAmountInterest) {
+            this.amountInterest = argAmountInterest;
+            return this;
+        }
+
+        public TransactionBuilder setCurrencyAddInterest(final String argCurrencyAddInterest) {
+            this.currencyAddInterest = argCurrencyAddInterest;
+            return this;
+        }
 
         public TransactionBuilder setAmountCashWithdrawal(final double argAmountCashWithdrawal) {
             this.amountCashWithdrawal = argAmountCashWithdrawal;
@@ -245,6 +283,10 @@ public final class Transaction {
         }
     }
 
+
+
+
+
     /**
      * Executes the sendMoney command
      * @throws Exception if the sender does not have enough money in the account
@@ -260,8 +302,6 @@ public final class Transaction {
         if (fromAccount.getBalance() < amountSenderWithComission) {
             throw new Exception("Insufficient funds");
         }
-
-
 
         fromAccount.withdraw(amountSenderWithComission);
         toAccount.deposit(amountReceiver);
@@ -312,8 +352,9 @@ public final class Transaction {
         }
 
         // payOnline
+        BigDecimal roundedAmountToPay = new BigDecimal(amountPayOnline).setScale(2, RoundingMode.HALF_UP);
         if (amountPayOnline > 0) {
-            objectNode.put("amount", amountPayOnline);
+            objectNode.put("amount", roundedAmountToPay.doubleValue());
         }
         if (commerciant != null) {
             objectNode.put("commerciant", commerciant);
@@ -349,6 +390,27 @@ public final class Transaction {
         // cashWithdrawal
         if (amountCashWithdrawal > 0) {
             objectNode.put("amount", amountCashWithdrawal);
+        }
+
+        // addInterest
+        if (amountInterest > 0) {
+            objectNode.put("amount", amountInterest);
+        }
+        if (currencyAddInterest != null) {
+            objectNode.put("currency", currencyAddInterest);
+        }
+
+        // spliyTransactionCustom
+        if (splitPaymentType != null) {
+            objectNode.put("splitPaymentType", splitPaymentType);
+        }
+
+        if (amountsSplitTransaction != null && !amountsSplitTransaction.isEmpty()) {
+            ArrayNode amountsArray = mapper.createArrayNode();
+            for (Double amount : amountsSplitTransaction) {
+                amountsArray.add(amount);
+            }
+            objectNode.set("amountForUsers", amountsArray);
         }
 
         return objectNode;

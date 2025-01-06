@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Getter;
 import lombok.Setter;
+import org.poo.accounts.Account;
+import org.poo.accounts.ClassicAccount;
 import org.poo.fileio.CommerciantInput;
 
 @Getter
@@ -11,19 +13,16 @@ import org.poo.fileio.CommerciantInput;
 public class Commerciant {
     private String name;
     private int id;
-    private String account;
+    private String accountIban;
     private String type;
     private String cashbackStrategy;
     private double totalAmountSpent;
-
-    @Setter
-    @Getter
     private int nrTransactions;
 
     public Commerciant(CommerciantInput commerciantInput) {
         this.name = commerciantInput.getCommerciant();
         this.id = commerciantInput.getId();
-        this.account = commerciantInput.getAccount();
+        this.accountIban = commerciantInput.getAccount();
         this.type = commerciantInput.getType();
         this.cashbackStrategy = commerciantInput.getCashbackStrategy();
         this.totalAmountSpent = 0;
@@ -33,10 +32,13 @@ public class Commerciant {
     public Commerciant(Commerciant commerciant, double totalAmountSpent) {
         this.name = commerciant.getName();
         this.id = commerciant.getId();
-        this.account = commerciant.getAccount();
+        this.accountIban = commerciant.getAccountIban();
         this.type = commerciant.getType();
         this.cashbackStrategy = commerciant.getCashbackStrategy();
         this.totalAmountSpent = totalAmountSpent;
+
+        // I do not need these when I construct commerciant with this constructor
+        this.nrTransactions = 0;
     }
 
     public void incrementNrTransactions() {

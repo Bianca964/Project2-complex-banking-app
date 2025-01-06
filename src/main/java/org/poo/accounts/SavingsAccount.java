@@ -26,10 +26,12 @@ public class SavingsAccount extends Account {
 
     /**
      * adds interest to the account
+     * @return the interest added to the account
      */
-    public void addInterest() {
+    public double addInterest() {
         double interest = getBalance() * interestRate;
         deposit(interest);
+        return interest;
     }
 
     /**

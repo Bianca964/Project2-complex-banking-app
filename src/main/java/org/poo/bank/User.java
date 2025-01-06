@@ -9,39 +9,33 @@ import org.poo.accounts.Account;
 import org.poo.cards.Card;
 import org.poo.fileio.UserInput;
 import org.poo.transactions.Commerciant;
+import org.poo.transactions.SplitPayment;
 import org.poo.transactions.Transaction;
 
 import java.util.ArrayList;
 
 import static org.poo.utils.Utils.generateCardNumber;
 
+@Getter
+@Setter
 public class User {
     private final UserInput userInfo;
-    @Getter
-    @Setter
     private ArrayList<Account> accounts;
-    @Setter
-    @Getter
     private ServicePlan servicePlan;
     private int min300payments;
     private final ArrayList<Transaction> transactions;
     private int nrClassicAccounts;
-
+    private ArrayList<SplitPayment> splitPayments;
 
     private ArrayList<Commerciant> commerciants;
-//    private int nrOfTrnscPayments;
-//    private int spendgsThresholdPayments;
-
     private boolean discountFood;
-    private boolean discoutClothes;
+    private boolean discountClothes;
     private boolean discountTech;
 
     private boolean discountFoodWasUsed;
     private boolean discountClothesWasUsed;
     private boolean discountTechWasUsed;
 
-    @Setter
-    @Getter
     private double totalAmountForSpendingThreshold;
 
 //    enum DiscountType {
@@ -51,11 +45,74 @@ public class User {
 //    }
 
 
+    public User(final UserInput userInfo, final Bank bank) {
+        this.userInfo = userInfo;
+        if (userInfo.getOccupation().equals("student")) {
+            this.servicePlan = new StudentPlan(bank);
+        } else {
+            this.servicePlan = new StandardPlan(bank);
+        }
+
+        this.accounts = new ArrayList<>();
+        this.transactions = new ArrayList<>();
+        this.nrClassicAccounts = 0;
+        this.min300payments = 0;
+
+        this.commerciants = new ArrayList<>();
+        this.discountFood = false;
+        this.discountClothes = false;
+        this.discountTech = false;
+
+        this.discountFoodWasUsed = false;
+        this.discountClothesWasUsed = false;
+        this.discountTechWasUsed = false;
+
+        this.totalAmountForSpendingThreshold = 0;
+
+        this.splitPayments = new ArrayList<>();
+    }
+
+
+
+
+
+    public void addSplitPayment(final SplitPayment splitPayment) {
+        splitPayments.add(splitPayment);
+    }
+
+    public void removeSplitPayment(final SplitPayment splitPayment) {
+        splitPayments.remove(splitPayment);
+    }
+
+    public SplitPayment acceptSplitPayment(final String type) {
+        // accept the first split payment of type given (they are accepted in order)
+        if (!splitPayments.isEmpty()) {
+            SplitPayment splitPayment = getFirstSplitTransactionOfType(type);
+            if (splitPayment == null) {
+                return null;
+            }
+            splitPayment.incrementAccepts();
+            return splitPayment;
+        }
+        return null;
+    }
+
+    public SplitPayment getFirstSplitTransactionOfType(final String type) {
+        for (SplitPayment splitPayment : splitPayments) {
+            if (splitPayment.getType().equals(type)) {
+                return splitPayment;
+            }
+        }
+        return null;
+    }
+
+
+
 
 
     // NrOfTransactions
     public boolean hasDiscountAvailable() {
-        return this.discountFood || this.discoutClothes || this.discountTech;
+        return this.discountFood || this.discountClothes || this.discountTech;
     }
 
     public void applyDiscount(Account account, Commerciant commerciant, double amountSpent) {
@@ -77,10 +134,10 @@ public class User {
     }
 
     public void applyClothesDiscount(Account account, double amountSpent) {
-        if (this.discoutClothes && !this.discountClothesWasUsed) {
+        if (this.discountClothes && !this.discountClothesWasUsed) {
             account.deposit(amountSpent * 0.05);
             this.discountClothesWasUsed = true;
-            this.discoutClothes = false;
+            this.discountClothes = false;
         }
     }
 
@@ -133,7 +190,7 @@ public class User {
         if (this.discountClothesWasUsed) {
             return;
         }
-        this.discoutClothes = true;
+        this.discountClothes = true;
     }
 
     public void setDiscountTech() {
@@ -233,32 +290,6 @@ public class User {
 
 
 
-
-
-    public User(final UserInput userInfo, final Bank bank) {
-        this.userInfo = userInfo;
-        if (userInfo.getOccupation().equals("student")) {
-            this.servicePlan = new StudentPlan(bank);
-        } else {
-            this.servicePlan = new StandardPlan(bank);
-        }
-
-        this.accounts = new ArrayList<>();
-        this.transactions = new ArrayList<>();
-        this.nrClassicAccounts = 0;
-        this.min300payments = 0;
-
-        this.commerciants = new ArrayList<>();
-        this.discountFood = false;
-        this.discoutClothes = false;
-        this.discountTech = false;
-
-        this.discountFoodWasUsed = false;
-        this.discountClothesWasUsed = false;
-        this.discountTechWasUsed = false;
-
-        this.totalAmountForSpendingThreshold = 0;
-    }
 
 
 
@@ -410,10 +441,32 @@ public class User {
     }
 
     /**
+     * Adds a transaction to the account's list of transactions (ordered by timestamp)
      * @param transaction the transaction to be added to the user's list of transactions
      */
     public void addTransaction(final Transaction transaction) {
-        transactions.add(transaction);
+//        // comparator to compare transactions by timestamp
+//        Comparator<Transaction> comparator = Comparator.comparingLong(Transaction::getTimestamp);
+//
+//        // use binary search to find the correct position
+//        int index = Collections.binarySearch(transactions, transaction, comparator);
+//
+//        // if index is negative, calculate the insertion position
+//        if (index < 0) {
+//            index = -index - 1;
+//        }
+//
+//        transactions.add(index, transaction);
+
+        int index = 0;
+        for (int i = 0; i < transactions.size(); i++) {
+            if (transactions.get(i).getTimestamp() > transaction.getTimestamp()) {
+                index = i;
+                break;
+            }
+            index = i + 1; // Dacă ajunge la final, se inserează la sfârșit
+        }
+        transactions.add(index, transaction); // Inserăm tranzacția la poziția calculat
     }
 
     /**

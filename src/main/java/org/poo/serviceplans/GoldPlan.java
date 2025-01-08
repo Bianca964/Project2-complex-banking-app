@@ -1,4 +1,6 @@
-package org.poo.bank;
+package org.poo.serviceplans;
+
+import org.poo.bank.Bank;
 
 public class GoldPlan extends ServicePlan {
     public GoldPlan(Bank bank) {

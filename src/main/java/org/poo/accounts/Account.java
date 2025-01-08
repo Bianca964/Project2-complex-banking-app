@@ -7,13 +7,13 @@ import lombok.Getter;
 import lombok.Setter;
 import org.poo.cards.Card;
 import org.poo.cards.OneTimeCard;
+import org.poo.transactions.Commerciant;
 import org.poo.transactions.Transaction;
+import org.poo.users.User;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 
 import static org.poo.utils.Utils.generateIBAN;
 
@@ -30,6 +30,13 @@ public abstract class Account {
     private double minBalance;
     private ArrayList<Transaction> transactions;
 
+    // total amount spent by the account for the spending threshold commerciants
+    private double totalAmountForSpendingThreshold;
+
+    // the list of all commerciants to which the account has made transactions
+    //private ArrayList<Commerciant> commerciants;
+
+
     public Account(final String currency, final String type, final int timestamp) {
         this.iban = generateIBAN();
         this.balance = 0;
@@ -39,7 +46,48 @@ public abstract class Account {
         this.minBalance = 0;
         this.cards = new ArrayList<>();
         this.transactions = new ArrayList<>();
+        this.totalAmountForSpendingThreshold = 0;
+        //this.commerciants = new ArrayList<>();
     }
+
+
+//    public Commerciant getCommerciant(final String name) {
+//        for (Commerciant commerciant : commerciants) {
+//            if (commerciant.getName().equals(name)) {
+//                return commerciant;
+//            }
+//        }
+//        return null;
+//    }
+//
+//    public Commerciant getCommerciant(final Commerciant wantedCommerciant) {
+//        for (Commerciant c : commerciants) {
+//            if (c.getName().equals(wantedCommerciant.getName())) {
+//                return c;
+//            }
+//        }
+//        return null;
+//    }
+//
+//    public void addCommerciant(final Commerciant commerciant) {
+//        commerciants.add(commerciant);
+//    }
+//
+//    public void incrementNrOfTrnscForCommerciant(final Commerciant commerciant) {
+//        if (commerciant != null) {
+//            commerciant.incrementNrTransactions();
+//        }
+//    }
+
+
+
+
+    public void addAmountForSpendingThreshold(final double amount) {
+        totalAmountForSpendingThreshold += amount;
+    }
+
+
+
 
     /**
      * @param cardNumber the card number of the card to be returned from this account
@@ -87,13 +135,17 @@ public abstract class Account {
         cards.add(card);
     }
 
+    public void addCard(final Card card) {
+        cards.add(card);
+    }
+
     /**
      * Creates a card with the given card number
      * @param cardNumber the card number of the card to be created
      */
-    public void createCard(final String cardNumber) {
+    public void createCard(final String cardNumber, final User user) {
         Card card = new Card(cardNumber);
-        cards.add(card);
+        addCard(card);
     }
 
     /**
@@ -103,6 +155,27 @@ public abstract class Account {
     public void deposit(final double amount) {
         balance += amount;
     }
+
+
+
+
+
+    public void addFunds(final double amount, final User user) throws Exception{
+        this.deposit(amount);
+    }
+
+
+    public abstract boolean isBusinessAccount();
+    public abstract boolean isSavingAccount();
+    public abstract boolean isClassicAccount();
+
+
+
+
+
+
+
+
 
     /**
      * Decreases the balance of the account
@@ -117,19 +190,6 @@ public abstract class Account {
      * @param transaction the transaction to be added to the account's list of transactions
      */
     public void addTransaction(final Transaction transaction) {
-//        // comparator to compare transactions by timestamp
-//        Comparator<Transaction> comparator = Comparator.comparingLong(Transaction::getTimestamp);
-//
-//        // use binary search to find the correct position
-//        int index = Collections.binarySearch(transactions, transaction, comparator);
-//
-//        // if index is negative, calculate the insertion position
-//        if (index < 0) {
-//            index = -index - 1;
-//        }
-//
-//        transactions.add(index, transaction);
-
         int index = 0;
         for (int i = 0; i < transactions.size(); i++) {
             if (transactions.get(i).getTimestamp() > transaction.getTimestamp()) {
@@ -147,11 +207,11 @@ public abstract class Account {
      */
     public abstract boolean supportsReport();
 
-    /**
-     * Abstract method that checks if the account has interest
-     * @return true if the account has interest and false otherwise
-     */
-    public abstract boolean hasInterest();
+//    /**
+//     * Abstract method that checks if the account has interest
+//     * @return true if the account has interest and false otherwise
+//     */
+//    public abstract boolean hasInterest();
 
     /**
      * Transforms the account to an ObjectNode
@@ -160,13 +220,21 @@ public abstract class Account {
      */
     public ObjectNode transformToObjectNode(final ObjectMapper objectMapper) {
         // Round to 2 decimal places
-        BigDecimal roundedBalance = new BigDecimal(balance).setScale(2, RoundingMode.HALF_UP);
+        //BigDecimal roundedBalance = new BigDecimal(balance).setScale(2, RoundingMode.HALF_UP);
 
         ObjectNode accountNode = objectMapper.createObjectNode();
         accountNode.put("IBAN", iban);
-        accountNode.put("balance", roundedBalance.doubleValue());
+        accountNode.put("balance", balance);
         accountNode.put("currency", currency);
         accountNode.put("type", type);
+
+
+
+
+        // update the account's balance
+        //this.setBalance(roundedBalance.doubleValue());
+
+
 
         ArrayNode cardsArray = objectMapper.createArrayNode();
         if (cards != null && !cards.isEmpty()) {

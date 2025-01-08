@@ -2,7 +2,7 @@ package org.poo.accounts;
 
 import lombok.Getter;
 import lombok.Setter;
-import org.poo.bank.User;
+import org.poo.users.User;
 import org.poo.transactions.Transaction;
 
 @Setter
@@ -16,13 +16,13 @@ public class SavingsAccount extends Account {
         this.interestRate = interestRate;
     }
 
-    /**
-     * @return true as the savings account has interest
-     */
-    @Override
-    public boolean hasInterest() {
-        return true;
-    }
+//    /**
+//     * @return true as the savings account has interest
+//     */
+//    @Override
+//    public boolean hasInterest() {
+//        return true;
+//    }
 
     /**
      * adds interest to the account
@@ -71,5 +71,20 @@ public class SavingsAccount extends Account {
             this.addTransaction(transaction);
             setBalance(getBalance() - amount);
         }
+    }
+
+    @Override
+    public boolean isBusinessAccount() {
+        return false;
+    }
+
+    @Override
+    public boolean isSavingAccount() {
+        return true;
+    }
+
+    @Override
+    public boolean isClassicAccount() {
+        return false;
     }
 }

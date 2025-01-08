@@ -39,6 +39,11 @@ public final class CommandFactory {
             case "upgradePlan" -> new UpgradePlanCommand(commandInput, mapper);
             case "cashWithdrawal" -> new CashWithdrawalCommand(commandInput, mapper);
             case "acceptSplitPayment" -> new AcceptSplitPaymentCommand(commandInput, mapper);
+            case "addNewBusinessAssociate" -> new AddNewBusinessAssociateCommand(commandInput, mapper);
+            case "changeSpendingLimit" -> new ChangeSpendingLimitCommand(commandInput, mapper);
+            case "businessReport" -> new BusinessReportCommand(commandInput, mapper);
+            case "changeDepositLimit" -> new ChangeDepositLimitCommand(commandInput, mapper);
+            case "rejectSplitPayment" -> new RejectSplitPaymentCommand(commandInput, mapper);
             default -> null;
         };
     }

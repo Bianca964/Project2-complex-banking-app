@@ -1,4 +1,4 @@
-package org.poo.bank;
+package org.poo.users;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -6,8 +6,11 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Getter;
 import lombok.Setter;
 import org.poo.accounts.Account;
+import org.poo.accounts.BusinessAccount;
+import org.poo.bank.*;
 import org.poo.cards.Card;
 import org.poo.fileio.UserInput;
+import org.poo.serviceplans.*;
 import org.poo.transactions.Commerciant;
 import org.poo.transactions.SplitPayment;
 import org.poo.transactions.Transaction;
@@ -25,9 +28,13 @@ public class User {
     private int min300payments;
     private final ArrayList<Transaction> transactions;
     private int nrClassicAccounts;
+
+    // for splitPayment
     private ArrayList<SplitPayment> splitPayments;
 
     private ArrayList<Commerciant> commerciants;
+
+
     private boolean discountFood;
     private boolean discountClothes;
     private boolean discountTech;
@@ -36,7 +43,10 @@ public class User {
     private boolean discountClothesWasUsed;
     private boolean discountTechWasUsed;
 
-    private double totalAmountForSpendingThreshold;
+    // for business accounts
+    private double amountSpentOnBusinessAccount;
+    private double amountDepositedOnBusinessAccount;
+    private ArrayList<Card> cardsAddedToBusinessAccount;
 
 //    enum DiscountType {
 //        FOOD,
@@ -58,7 +68,6 @@ public class User {
         this.nrClassicAccounts = 0;
         this.min300payments = 0;
 
-        this.commerciants = new ArrayList<>();
         this.discountFood = false;
         this.discountClothes = false;
         this.discountTech = false;
@@ -67,10 +76,39 @@ public class User {
         this.discountClothesWasUsed = false;
         this.discountTechWasUsed = false;
 
-        this.totalAmountForSpendingThreshold = 0;
-
         this.splitPayments = new ArrayList<>();
+
+        this.amountSpentOnBusinessAccount = 0;
+        this.amountDepositedOnBusinessAccount = 0;
+        this.cardsAddedToBusinessAccount = new ArrayList<>();
+
+        this.commerciants = new ArrayList<>();
+
     }
+
+
+    public void addCardToCardsAddedToBusinessAccount(final Card card) {
+        cardsAddedToBusinessAccount.add(card);
+    }
+
+    public void removeCardFromCardsAddedToBusinessAccount(final Card card) {
+        cardsAddedToBusinessAccount.remove(card);
+    }
+
+
+
+    public void increaseAmountSpentOnBusinessAccount(double amount) {
+        this.amountSpentOnBusinessAccount += amount;
+    }
+
+    public void increaseAmountDepositedOnBusinessAccount(double amount) {
+        this.amountDepositedOnBusinessAccount += amount;
+    }
+
+    public String getUsername() {
+        return userInfo.getLastName() + " " + userInfo.getFirstName();
+    }
+
 
 
 
@@ -98,6 +136,9 @@ public class User {
     }
 
     public SplitPayment getFirstSplitTransactionOfType(final String type) {
+
+        // nu verific daca e si acceptata deja de user ul acesta!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+
         for (SplitPayment splitPayment : splitPayments) {
             if (splitPayment.getType().equals(type)) {
                 return splitPayment;
@@ -105,6 +146,10 @@ public class User {
         }
         return null;
     }
+
+
+
+
 
 
 
@@ -149,6 +194,32 @@ public class User {
         }
     }
 
+//    public void resetFoodDiscountForSpendingThresholdAfterUse() {
+//        this.discountFood = true;
+//        this.discountFoodWasUsed = false;
+//    }
+//
+//    public void resetClothesDiscountForSpendingThresholdAfterUse() {
+//        this.discountClothes = true;
+//        this.discountClothesWasUsed = false;
+//    }
+//
+//    public void resetTechDiscountForSpendingThresholdAfterUse() {
+//        this.discountTech = true;
+//        this.discountTechWasUsed = false;
+//    }
+//
+//    public void resetDiscountsForSpendingThresholdAfterUse(Commerciant commerciant) {
+//        resetFoodDiscountForSpendingThresholdAfterUse();
+//        resetClothesDiscountForSpendingThresholdAfterUse();
+//        resetTechDiscountForSpendingThresholdAfterUse();
+//    }
+
+
+
+
+
+
 
 
     public Commerciant getCommerciant(final String name) {
@@ -178,6 +249,11 @@ public class User {
             commerciant.incrementNrTransactions();
         }
     }
+
+
+
+
+
 
     public void setDiscountFood() {
         if (this.discountFoodWasUsed) {
@@ -230,52 +306,47 @@ public class User {
 
 
     // SPENDING THRESHOLD
-    public void addAmountForSpendingThreshold(final double amount) {
-        this.totalAmountForSpendingThreshold += amount;
-    }
-
     public void applySpendingThresholdDiscount(Account account, double amountSpent) {
-        if (this.totalAmountForSpendingThreshold >= 100 && this.totalAmountForSpendingThreshold < 300) {
-            if (this.getServicePlan().getName().equals("student") || this.getServicePlan().getName().equals("standard")) {
+        ServicePlan servicePlan = this.getServicePlan();
+        // if the sender account is business, the owner's service plan is used for cashback
+        if (account.isBusinessAccount()) {
+            servicePlan = ((BusinessAccount) account).getOwner().getServicePlan();
+        }
+
+        double totalAmountForSpendingThreshold = account.getTotalAmountForSpendingThreshold();
+
+        if (totalAmountForSpendingThreshold >= 100 && totalAmountForSpendingThreshold < 300) {
+            if (servicePlan.getName().equals("student") || servicePlan.getName().equals("standard")) {
                 account.deposit(amountSpent * 0.001);
             }
-            if (this.getServicePlan().getName().equals("silver")) {
+            if (servicePlan.getName().equals("silver")) {
                 account.deposit(amountSpent * 0.003);
             }
-            if (this.getServicePlan().getName().equals("gold")) {
+            if (servicePlan.getName().equals("gold")) {
                 account.deposit(amountSpent * 0.005);
             }
         }
 
-
-
-        if (this.totalAmountForSpendingThreshold >= 300 && this.totalAmountForSpendingThreshold < 500) {
-            System.out.println("pot sa aplic cashnack");
-            if (this.getServicePlan().getName().equals("student") || this.getServicePlan().getName().equals("standard")) {
-                System.out.println("student sau standard");
-                System.out.println("Account balance before= " + account.getBalance());
+        if (totalAmountForSpendingThreshold >= 300 && totalAmountForSpendingThreshold < 500) {
+            if (servicePlan.getName().equals("student") || servicePlan.getName().equals("standard")) {
                 account.deposit(amountSpent * 0.002);
-                System.out.println("Account balance after= " + account.getBalance());
             }
-            if (this.getServicePlan().getName().equals("silver")) {
-                System.out.println("silver");
+            if (servicePlan.getName().equals("silver")) {
                 account.deposit(amountSpent * 0.004);
             }
-            if (this.getServicePlan().getName().equals("gold")) {
-                System.out.println("gold");
+            if (servicePlan.getName().equals("gold")) {
                 account.deposit(amountSpent * 0.0055);
             }
         }
 
-
-        if (this.totalAmountForSpendingThreshold >= 500) {
-            if (this.getServicePlan().getName().equals("student") || this.getServicePlan().getName().equals("standard")) {
+        if (totalAmountForSpendingThreshold >= 500) {
+            if (servicePlan.getName().equals("student") || servicePlan.getName().equals("standard")) {
                 account.deposit(amountSpent * 0.0025);
             }
-            if (this.getServicePlan().getName().equals("silver")) {
+            if (servicePlan.getName().equals("silver")) {
                 account.deposit(amountSpent * 0.005);
             }
-            if (this.getServicePlan().getName().equals("gold")) {
+            if (servicePlan.getName().equals("gold")) {
                 account.deposit(amountSpent * 0.007);
             }
         }
@@ -308,17 +379,49 @@ public class User {
         min300payments++;
     }
 
+
+
+    public boolean checkForUpgradeToGoldPlan(Account account, final Bank bank, final int timestamp) {
+        if (min300payments >= 5 && this.servicePlan.getName().equals("silver")) {
+            this.servicePlan = new GoldPlan(bank);
+
+            Transaction transaction = new Transaction.TransactionBuilder()
+                    .setTimestamp(timestamp)
+                    .setDescription("Upgrade plan")
+                    .setAccountIbanUpgradePlan(account.getIban())
+                    .setNewPlanType("gold")
+                    .build();
+            this.addTransaction(transaction);
+            account.addTransaction(transaction);
+            return true;
+        }
+        return false;
+    }
+
+
     public void upgradePlan(Account account, final Bank bank, final int timestamp, final String newPlanType) throws Exception {
 
         // if user has silver plan, make the automatic upgrade to gold plan (without fee)
-        if (min300payments >= 5 && this.servicePlan.getName().equals("silver")) {
-            this.servicePlan = new GoldPlan(bank);
+//        if (min300payments >= 5 && this.servicePlan.getName().equals("silver")) {
+//            this.servicePlan = new GoldPlan(bank);
+//            return;
+//        }
+        if (checkForUpgradeToGoldPlan(account, bank, timestamp)) {
             return;
         }
 
+
+
         String currentPlanName = this.servicePlan.getName();
         if (newPlanType.equals(currentPlanName)) {
-            throw new Exception("The user already has the " + newPlanType + " plan");
+            //throw new Exception("You already have this plan");
+            Transaction transaction = new Transaction.TransactionBuilder()
+                    .setTimestamp(timestamp)
+                    .setDescription("The user already has the " + newPlanType + " plan.")
+                    .build();
+            this.addTransaction(transaction);
+            account.addTransaction(transaction);
+            return;
         }
 
         ServicePlan newServicePlan = switch (newPlanType) {
@@ -330,7 +433,8 @@ public class User {
         };
 
         if (newServicePlan.getUpgradeLevel() < this.servicePlan.getUpgradeLevel()) {
-            throw new Exception("You cannot downgrade your plan.");
+            return;
+            //throw new Exception("You cannot downgrade your plan.");
         }
 
         // upgrade the plan
@@ -344,7 +448,12 @@ public class User {
         double feeInRon = this.servicePlan.getUpgradeFee(newPlanType);
         double feeInAccountCurrency = feeInRon * exchangeRateFromRon;
         if (account.getBalance() < feeInAccountCurrency) {
-            throw new Exception("Insufficient funds");
+            Transaction transaction = new Transaction.TransactionBuilder()
+                    .setTimestamp(timestamp)
+                    .setDescription("Insufficient funds")
+                    .build();
+            this.addTransaction(transaction);
+            return;
         }
 
         account.withdraw(feeInAccountCurrency);
@@ -358,7 +467,14 @@ public class User {
                 .setNewPlanType(newPlanType)
                 .build();
         this.addTransaction(transaction);
+        account.addTransaction(transaction);
+
+        // if the new plan is silver, reset the number of payments over 300
+        if (newPlanType.equals("silver")) {
+            setMin300payments(0);
+        }
     }
+
 
 
 
@@ -401,7 +517,8 @@ public class User {
         if (account == null) {
             return;
         }
-        account.createCard(cardNumber);
+
+        account.createCard(cardNumber, this);
 
         Transaction transaction = new Transaction.TransactionBuilder()
                 .setTimestamp(timestamp)
@@ -445,19 +562,6 @@ public class User {
      * @param transaction the transaction to be added to the user's list of transactions
      */
     public void addTransaction(final Transaction transaction) {
-//        // comparator to compare transactions by timestamp
-//        Comparator<Transaction> comparator = Comparator.comparingLong(Transaction::getTimestamp);
-//
-//        // use binary search to find the correct position
-//        int index = Collections.binarySearch(transactions, transaction, comparator);
-//
-//        // if index is negative, calculate the insertion position
-//        if (index < 0) {
-//            index = -index - 1;
-//        }
-//
-//        transactions.add(index, transaction);
-
         int index = 0;
         for (int i = 0; i < transactions.size(); i++) {
             if (transactions.get(i).getTimestamp() > transaction.getTimestamp()) {
@@ -532,7 +636,7 @@ public class User {
             }
 
             // if account is of type classic account, decrement the number of classic accounts
-            if (!account.hasInterest()) {
+            if (account.isClassicAccount()) {
                 nrClassicAccounts--;
             }
 
@@ -604,5 +708,16 @@ public class User {
             }
         }
         return transactionsArray;
+    }
+
+
+    public ObjectNode associateTransformToAnObjectNode(final ObjectMapper objectMapper) {
+        ObjectNode userNode = objectMapper.createObjectNode();
+
+        userNode.put("username", getUsername());
+        userNode.put("spent", getAmountSpentOnBusinessAccount());
+        userNode.put("deposited", getAmountDepositedOnBusinessAccount());
+
+        return userNode;
     }
 }

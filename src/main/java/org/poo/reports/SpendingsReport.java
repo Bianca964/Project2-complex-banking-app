@@ -38,12 +38,15 @@ public final class SpendingsReport implements ReportGenerator {
             throw new Exception("This kind of report is not supported for a saving account");
         }
 
-        BigDecimal roundedBalance = new BigDecimal(account.getBalance()).setScale(2, RoundingMode.HALF_UP);
+        //BigDecimal roundedBalance = new BigDecimal(account.getBalance()).setScale(2, RoundingMode.HALF_UP);
 
         ObjectNode outputNode = mapper.createObjectNode();
         outputNode.put("IBAN", account.getIban());
-        outputNode.put("balance", roundedBalance.doubleValue());
+        outputNode.put("balance", account.getBalance());
         outputNode.put("currency", account.getCurrency());
+
+        // update the account's balance
+        //account.setBalance(roundedBalance.doubleValue());
 
         // transaction output
         ArrayNode transactionsArray = mapper.createArrayNode();
@@ -77,7 +80,7 @@ public final class SpendingsReport implements ReportGenerator {
         // commerciants output
         ArrayNode commerciantsArray = mapper.createArrayNode();
         for (Commerciant commerciant : commerciantsMap.values()) {
-            commerciantsArray.add(commerciant.transformToObjectNode(mapper));
+            commerciantsArray.add(commerciant.transformToObjectNodeForSpendingsReport(mapper));
         }
         outputNode.set("commerciants", commerciantsArray);
 

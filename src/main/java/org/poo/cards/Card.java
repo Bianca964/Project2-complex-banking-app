@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Getter;
 import lombok.Setter;
 import org.poo.accounts.Account;
-import org.poo.bank.User;
+import org.poo.users.User;
 import org.poo.fileio.CommandInput;
 import org.poo.transactions.Transaction;
 

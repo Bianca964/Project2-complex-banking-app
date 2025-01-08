@@ -6,18 +6,25 @@ public class ClassicAccount extends Account {
     }
 
     /**
-     * @return false as the classic account does not have interest
-     */
-    @Override
-   public boolean hasInterest() {
-        return false;
-   }
-
-    /**
      * @return true as the classic account supports reports
      */
     @Override
     public boolean supportsReport() {
+        return true;
+    }
+
+    @Override
+    public boolean isBusinessAccount() {
+        return false;
+    }
+
+    @Override
+    public boolean isSavingAccount() {
+        return false;
+    }
+
+    @Override
+    public boolean isClassicAccount() {
         return true;
     }
 }

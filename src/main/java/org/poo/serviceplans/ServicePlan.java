@@ -1,5 +1,11 @@
-package org.poo.bank;
+package org.poo.serviceplans;
 
+import lombok.Getter;
+import lombok.Setter;
+import org.poo.bank.Bank;
+
+@Getter
+@Setter
 public abstract class ServicePlan {
     private final String name;
     private final double comission;
@@ -10,18 +16,6 @@ public abstract class ServicePlan {
         this.name = name;
         this.comission = comission;
         this.bank = bank;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public double getComission() {
-        return comission;
-    }
-
-    public int getUpgradeLevel() {
-        return upgradeLevel;
     }
 
     public abstract double applyComission(final double amountSpent, final String currency);

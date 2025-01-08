@@ -2,9 +2,11 @@ package org.poo.transactions;
 
 import org.poo.accounts.Account;
 import org.poo.bank.Bank;
-import org.poo.bank.User;
+import org.poo.users.User;
 import org.poo.fileio.CommandInput;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -58,6 +60,10 @@ public class SplitPaymentEqual extends SplitPayment {
 
 
 
+    public double getRoundedAmountSplitted() {
+        //return new BigDecimal(amountSplitted).setScale(2, RoundingMode.HALF_UP).doubleValue();
+        return amountSplitted;
+    }
 
 
     /**
@@ -70,6 +76,7 @@ public class SplitPaymentEqual extends SplitPayment {
             accountsIban.add(account.getIban());
         }
 
+
         // if not everyone has enough money (if brokenAccount is null, everyone has enough money)
         Account brokenAccount = everyoneHasEnoughBalance(accounts, amountSplitted, currency);
         if (brokenAccount != null) {
@@ -81,7 +88,7 @@ public class SplitPaymentEqual extends SplitPayment {
                                 + " has insufficient funds for a split payment.")
                         .setTimestamp(timestamp)
                         .setCurrency(currency)
-                        .setAmountSplitted(amountSplitted)
+                        .setAmountSplitted(getRoundedAmountSplitted())
                         .setInvolvedAccounts(accountsIban)
                         .setSplitPaymentType("equal")
                         .build();
@@ -127,6 +134,33 @@ public class SplitPaymentEqual extends SplitPayment {
             user.addTransaction(transaction);
             account.addTransaction(transaction);
         }
+    }
+
+
+
+    public Transaction createTransactionForReject() {
+        List<String> involvedAccounts = new ArrayList<>();
+        for (Account account : accounts) {
+            involvedAccounts.add(account.getIban());
+        }
+
+        List<Double> amounts = new ArrayList<>();
+        for (int i = 0; i < accounts.size(); i++) {
+            amounts.add(amountSplitted);
+        }
+
+        Transaction transaction = new Transaction.TransactionBuilder()
+                .setTimestamp(timestamp)
+                .setError("One user rejected the payment.")
+                .setDescription("Split payment of " + String.format("%.2f", totalAmount)
+                        + " " + currency)
+                .setCurrency(currency)
+                .setSplitPaymentType("equal")
+                .setInvolvedAccounts(involvedAccounts)
+                .setAmountSplitted(getRoundedAmountSplitted())
+                .build();
+
+        return transaction;
     }
 
 }

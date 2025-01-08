@@ -1,13 +1,17 @@
 package org.poo.transactions;
 
+import lombok.Getter;
 import lombok.Setter;
 import org.poo.accounts.Account;
 import org.poo.bank.Bank;
-import org.poo.bank.User;
+import org.poo.users.User;
 import org.poo.fileio.CommandInput;
 
 import java.util.ArrayList;
+import java.util.List;
 
+@Getter
+@Setter
 public abstract class SplitPayment {
     protected Bank bank;
     protected int accepts;
@@ -47,6 +51,10 @@ public abstract class SplitPayment {
         this.users.add(user);
     }
 
+    public void removeUser(User user) {
+        this.users.remove(user);
+    }
+
     public void incrementAccepts() {
         accepts++;
     }
@@ -55,7 +63,17 @@ public abstract class SplitPayment {
         return accepts == users.size();
     }
 
+    public void removeSplitPaymentFromAllInvolvedUsers() {
+        for (User user : users) {
+            user.removeSplitPayment(this);
+        }
+    }
+
 
     public abstract String getType();
     public abstract void execute();
+    public abstract Transaction createTransactionForReject();
+
+
+
 }

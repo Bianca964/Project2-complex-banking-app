@@ -5,7 +5,8 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Getter;
 import org.poo.accounts.Account;
-import org.poo.bank.User;
+import org.poo.serviceplans.ServicePlan;
+import org.poo.users.User;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -20,6 +21,7 @@ public final class Transaction {
     // sendMoney
     private final Account fromAccount;
     private final Account toAccount;
+    private final String toAccountCommerciant;
     private double amountSender;
     private final double amountReceiver;
     private final String transferType;
@@ -54,6 +56,11 @@ public final class Transaction {
     private final double amountInterest;
     private final String currencyAddInterest;
 
+    // whithdraw savings
+    private String classicAccountIban;
+    private String savingsAccountIban;
+    private double amountWithdrawn;
+
     // private constructor for forcing the use of the Builder
     private Transaction(final TransactionBuilder builder) {
         this.description = builder.description;
@@ -79,6 +86,10 @@ public final class Transaction {
         this.currencyAddInterest = builder.currencyAddInterest;
         this.splitPaymentType = builder.splitPaymentType;
         this.amountsSplitTransaction = builder.amountsSplitTransaction;
+        this.classicAccountIban = builder.classicAccountIban;
+        this.savingsAccountIban = builder.savingsAccountIban;
+        this.amountWithdrawn = builder.amountWithdrawn;
+        this.toAccountCommerciant = builder.toAccountCommerciant;
 
     }
 
@@ -106,6 +117,30 @@ public final class Transaction {
         private String currencyAddInterest;
         private String splitPaymentType;
         private List<Double> amountsSplitTransaction;
+        private String classicAccountIban;
+        private String savingsAccountIban;
+        private double amountWithdrawn;
+        private String toAccountCommerciant;
+
+        public TransactionBuilder setToAccountCommerciant(final String argToAccountCommerciant) {
+            this.toAccountCommerciant = argToAccountCommerciant;
+            return this;
+        }
+
+        public TransactionBuilder setClassicAccountIban(final String argClassicAccountIban) {
+            this.classicAccountIban = argClassicAccountIban;
+            return this;
+        }
+
+        public TransactionBuilder setSavingsAccountIban(final String argSavingsAccountIban) {
+            this.savingsAccountIban = argSavingsAccountIban;
+            return this;
+        }
+
+        public TransactionBuilder setAmountWithdrawn(final double argAmountWithdrawn) {
+            this.amountWithdrawn = argAmountWithdrawn;
+            return this;
+        }
 
         public TransactionBuilder setSplitPaymentType(final String argSplitPaymentType) {
             this.splitPaymentType = argSplitPaymentType;
@@ -291,13 +326,13 @@ public final class Transaction {
      * Executes the sendMoney command
      * @throws Exception if the sender does not have enough money in the account
      */
-    public void doTransactionSendMoney(User sender) throws Exception {
+    public void doTransactionSendMoney(ServicePlan servicePlan) throws Exception {
         if (amountSender <= 0 || fromAccount == null || toAccount == null) {
             return;
         }
 
         // apply comission
-        double amountSenderWithComission = sender.getServicePlan().applyComission(amountSender, fromAccount.getCurrency());
+        double amountSenderWithComission = servicePlan.applyComission(amountSender, fromAccount.getCurrency());
 
         if (fromAccount.getBalance() < amountSenderWithComission) {
             throw new Exception("Insufficient funds");
@@ -324,6 +359,9 @@ public final class Transaction {
         }
         if (toAccount != null) {
             objectNode.put("receiverIBAN", toAccount.getIban());
+        }
+        if (toAccountCommerciant != null) {
+            objectNode.put("receiverIBAN", toAccountCommerciant);
         }
         if (transferType != null) {
             objectNode.put("transferType", transferType);
@@ -352,9 +390,9 @@ public final class Transaction {
         }
 
         // payOnline
-        BigDecimal roundedAmountToPay = new BigDecimal(amountPayOnline).setScale(2, RoundingMode.HALF_UP);
+        //BigDecimal roundedAmountToPay = new BigDecimal(amountPayOnline).setScale(2, RoundingMode.HALF_UP);
         if (amountPayOnline > 0) {
-            objectNode.put("amount", roundedAmountToPay.doubleValue());
+            objectNode.put("amount", amountPayOnline);
         }
         if (commerciant != null) {
             objectNode.put("commerciant", commerciant);
@@ -411,6 +449,19 @@ public final class Transaction {
                 amountsArray.add(amount);
             }
             objectNode.set("amountForUsers", amountsArray);
+        }
+
+        // withdraw savings
+        if (classicAccountIban != null) {
+            objectNode.put("classicAccountIBAN", classicAccountIban);
+        }
+
+        if (savingsAccountIban != null) {
+            objectNode.put("savingsAccountIBAN", savingsAccountIban);
+        }
+
+        if (amountWithdrawn > 0) {
+            objectNode.put("amount", amountWithdrawn);
         }
 
         return objectNode;

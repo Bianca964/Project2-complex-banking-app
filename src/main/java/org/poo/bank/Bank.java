@@ -11,12 +11,16 @@ import org.poo.fileio.CommandInput;
 import org.poo.fileio.CommerciantInput;
 import org.poo.fileio.ExchangeInput;
 import org.poo.fileio.UserInput;
+import org.poo.reports.BusinessReport;
 import org.poo.reports.ClassicReport;
 import org.poo.reports.ReportGenerator;
 import org.poo.reports.SpendingsReport;
 import org.poo.transactions.Commerciant;
 import org.poo.transactions.Transaction;
+import org.poo.users.User;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 
 import static org.poo.utils.Utils.MIN_BALANCE_DIFFERENCE;
@@ -90,6 +94,12 @@ public final class Bank extends ExchangeRate {
             return;
         }
 
+
+
+        if (savingsAccount == null) {
+            throw new Exception("Account not found");
+        }
+
         if (!user.hasClassicAccount()) {
             Transaction transaction = new Transaction.TransactionBuilder()
                     .setTimestamp(commandInput.getTimestamp())
@@ -97,14 +107,11 @@ public final class Bank extends ExchangeRate {
                     .build();
 
             user.addTransaction(transaction);
+            savingsAccount.addTransaction(transaction);
             return;
         }
 
-        if (savingsAccount == null) {
-            throw new Exception("Account not found");
-        }
-
-        if (!savingsAccount.hasInterest()) {
+        if (!savingsAccount.isSavingAccount()) {
             Transaction transaction = new Transaction.TransactionBuilder()
                     .setTimestamp(commandInput.getTimestamp())
                     .setDescription("Account is not of type savings.")
@@ -125,18 +132,26 @@ public final class Bank extends ExchangeRate {
 
         // deposit amount in classic account
         String currency = commandInput.getCurrency();
-        for (Account account : user.getAccounts()) {
+        for (Account classicAccount : user.getAccounts()) {
             // if it s a classic account
-            if (!account.hasInterest() && account.getCurrency().equals(currency)) {
-                account.deposit(commandInput.getAmount());
+            if (classicAccount.isClassicAccount() && classicAccount.getCurrency().equals(currency)) {
+                classicAccount.deposit(commandInput.getAmount());
 
                 // create transaction
                 Transaction transaction = new Transaction.TransactionBuilder()
                         .setTimestamp(commandInput.getTimestamp())
                         .setDescription("Savings withdrawal")
+                        .setAmountWithdrawn(commandInput.getAmount())
+                        .setClassicAccountIban(classicAccount.getIban())
+                        .setSavingsAccountIban(savingsAccount.getIban())
                         .build();
+                // add to the classic account
                 user.addTransaction(transaction);
-                account.addTransaction(transaction);
+                classicAccount.addTransaction(transaction);
+
+                // add to the savings account
+                user.addTransaction(transaction);
+                savingsAccount.addTransaction(transaction);
                 return;
             }
         }
@@ -165,6 +180,14 @@ public final class Bank extends ExchangeRate {
         ReportGenerator reportGenerator = new SpendingsReport(this);
         return reportGenerator.generateReport(commandInput, mapper);
     }
+
+    public ObjectNode businessReport(final CommandInput commandInput,
+                                      final ObjectMapper mapper) throws Exception {
+        ReportGenerator reportGenerator = new BusinessReport(this);
+        return reportGenerator.generateReport(commandInput, mapper);
+    }
+
+
 
     /**
      * Checks the status of a card and freezes it if the balance is below the minimum
@@ -243,7 +266,7 @@ public final class Bank extends ExchangeRate {
             return;
         }
 
-        if (account.hasInterest()) {
+        if (account.isSavingAccount()) {
             ((SavingsAccount) account).setInterestRate(newInterestRate, user, timestamp);
         } else {
             throw new Exception("This is not a savings account");
@@ -261,7 +284,7 @@ public final class Bank extends ExchangeRate {
             throw new Exception("Account not found");
         }
 
-        if (account.hasInterest()) {
+        if (account.isSavingAccount()) {
             double interest = ((SavingsAccount) account).addInterest();
 
             // add transaction
@@ -269,6 +292,9 @@ public final class Bank extends ExchangeRate {
             if (user == null) {
                 return;
             }
+
+            //BigDecimal roundedInterest = new BigDecimal(interest).setScale(2, RoundingMode.HALF_UP);
+
             Transaction transaction = new Transaction.TransactionBuilder()
                     .setAmountInterest(interest)
                     .setCurrencyAddInterest(account.getCurrency())
@@ -385,6 +411,7 @@ public final class Bank extends ExchangeRate {
     /**
      * @param email the email of the user to whom the account is added
      * @param account the account to be added
+     * @param accountType the type of the account
      */
     public void addAccountToUser(final String email, final Account account, final String accountType) {
         User user = getUserWithEmail(email);

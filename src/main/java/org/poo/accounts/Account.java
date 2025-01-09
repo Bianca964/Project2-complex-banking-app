@@ -11,10 +11,7 @@ import org.poo.transactions.Commerciant;
 import org.poo.transactions.Transaction;
 import org.poo.users.User;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.ArrayList;
-
 import static org.poo.utils.Utils.generateIBAN;
 
 @Getter
@@ -34,7 +31,7 @@ public abstract class Account {
     private double totalAmountForSpendingThreshold;
 
     // the list of all commerciants to which the account has made transactions
-    //private ArrayList<Commerciant> commerciants;
+    protected ArrayList<Commerciant> commerciants;
 
 
     public Account(final String currency, final String type, final int timestamp) {
@@ -47,37 +44,29 @@ public abstract class Account {
         this.cards = new ArrayList<>();
         this.transactions = new ArrayList<>();
         this.totalAmountForSpendingThreshold = 0;
-        //this.commerciants = new ArrayList<>();
+        this.commerciants = new ArrayList<>();
     }
 
 
-//    public Commerciant getCommerciant(final String name) {
-//        for (Commerciant commerciant : commerciants) {
-//            if (commerciant.getName().equals(name)) {
-//                return commerciant;
-//            }
-//        }
-//        return null;
-//    }
-//
-//    public Commerciant getCommerciant(final Commerciant wantedCommerciant) {
-//        for (Commerciant c : commerciants) {
-//            if (c.getName().equals(wantedCommerciant.getName())) {
-//                return c;
-//            }
-//        }
-//        return null;
-//    }
-//
-//    public void addCommerciant(final Commerciant commerciant) {
-//        commerciants.add(commerciant);
-//    }
-//
-//    public void incrementNrOfTrnscForCommerciant(final Commerciant commerciant) {
-//        if (commerciant != null) {
-//            commerciant.incrementNrTransactions();
-//        }
-//    }
+
+    public Commerciant getCommerciant(final Commerciant wantedCommerciant) {
+        for (Commerciant c : commerciants) {
+            if (c.getName().equals(wantedCommerciant.getName())) {
+                return c;
+            }
+        }
+        return null;
+    }
+
+    public void addCommerciant(final Commerciant commerciant) {
+        commerciants.add(commerciant);
+    }
+
+    public void incrementNrOfTrnscForCommerciant(final Commerciant commerciant) {
+        if (commerciant != null) {
+            commerciant.incrementNrTransactions();
+        }
+    }
 
 
 

@@ -16,7 +16,9 @@ public class BusinessAccount extends Account {
     private User owner;
     private ArrayList<User> employees;
     private ArrayList<User> managers;
-    private ArrayList<Commerciant> commerciants;
+
+    // lista de comercianti care ar trebui sa apara in businessReport(cei care au fost adaugati de asociati, aia de owner nu se adauga)
+    private ArrayList<Commerciant> commerciantsAddedByAssociates;
 
     // spending limit for employees
     private double spendingLimitForEmployees;
@@ -29,7 +31,7 @@ public class BusinessAccount extends Account {
         this.employees = new ArrayList<>();
         this.managers = new ArrayList<>();
         this.owner = user;
-        this.commerciants = new ArrayList<>();
+        this.commerciantsAddedByAssociates = new ArrayList<>();
 
         double exchangeRate;
         try {
@@ -46,19 +48,29 @@ public class BusinessAccount extends Account {
     }
 
 
-
-    // tb sa l adaug in ordine alfabetica dupa numele comerciantului
-    public void addCommerciant(final Commerciant commerciant) {
-        commerciants.add(commerciant);
-        commerciants.sort(Comparator.comparing(Commerciant::getName));
+    // tb sa l adaug in ordine alfabetica dupa numele comerciantului - pt business Report
+    public void addCommerciantAddedByAssociate(final Commerciant commerciant) {
+        commerciantsAddedByAssociates.add(commerciant);
+        commerciantsAddedByAssociates.sort(Comparator.comparing(Commerciant::getName));
     }
+
+
+
+
+
+
+
+
+
+
 
     public void addAmountReceivedByCommerciant(final double amount, final Commerciant commerciant) {
         commerciant.addAmountReceived(amount);
     }
 
-    public boolean hasCommerciant(final Commerciant commerciant) {
-        return commerciants.contains(commerciant);
+
+    public boolean hasCommerciantAddedByAssociate(final Commerciant commerciant) {
+        return commerciantsAddedByAssociates.contains(commerciant);
     }
 
     public void addAssociateToCommerciant(final User user, final Commerciant commerciant) {
@@ -183,7 +195,7 @@ public class BusinessAccount extends Account {
         if (isEmployee(user) && amount > depositLimit) {
             throw new Exception("Deposit limit exceeded");
         }
-        user.increaseAmountDepositedOnBusinessAccount(amount);
+        user.increaseAmountDepositedOnBusinessAccount(this, amount);
     }
 
     public void increaseAmountSpentOnBusinessAccountByUser(final double amount, final User user) throws Exception {
@@ -192,17 +204,17 @@ public class BusinessAccount extends Account {
                 throw new Exception("Spending limit exceeded");
             }
         }
-        user.increaseAmountSpentOnBusinessAccount(amount);
+        user.increaseAmountSpentOnBusinessAccount(this, amount);
     }
 
     public double getTotalAmountDeposited() {
         double amountDeposited = 0;
         for (User manager : managers) {
-            amountDeposited += manager.getAmountDepositedOnBusinessAccount();
+            amountDeposited += manager.getAmountDepositedOnBusinessAccount(this);
         }
 
         for (User employee : employees) {
-            amountDeposited += employee.getAmountDepositedOnBusinessAccount();
+            amountDeposited += employee.getAmountDepositedOnBusinessAccount(this);
         }
         return amountDeposited;
     }
@@ -210,11 +222,11 @@ public class BusinessAccount extends Account {
     public double getTotalAmountSpent() {
         double amountSpent = 0;
         for (User manager : managers) {
-            amountSpent += manager.getAmountSpentOnBusinessAccount();
+            amountSpent += manager.getAmountSpentOnBusinessAccount(this);
         }
 
         for (User employee : employees) {
-            amountSpent += employee.getAmountSpentOnBusinessAccount();
+            amountSpent += employee.getAmountSpentOnBusinessAccount(this);
         }
         return amountSpent;
     }
@@ -233,11 +245,6 @@ public class BusinessAccount extends Account {
         return true;
     }
 
-//    @Override
-//    public boolean hasInterest() {
-//        return false;
-//    }
-
     @Override
     public boolean isClassicAccount() {
         return false;
@@ -247,7 +254,4 @@ public class BusinessAccount extends Account {
     public boolean isSavingAccount() {
         return false;
     }
-
-
-
 }

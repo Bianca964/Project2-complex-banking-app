@@ -113,9 +113,6 @@ public class Commerciant {
     public ObjectNode transformToObjectNodeForBusinessReport(final ObjectMapper mapper) {
         ObjectNode commerciantNode = mapper.createObjectNode();
 
-        //BigDecimal roundedTotalAmountReceived = new BigDecimal(totalAmountReceived).setScale(2, RoundingMode.HALF_UP);
-
-
         commerciantNode.put("commerciant", name);
         commerciantNode.put("total received", totalAmountReceived);
 

@@ -27,10 +27,7 @@ public final class AddFundsCommand extends Command {
 //                outputNode.put("error", e.getMessage());
 //                outputNode.put("timestamp", commandInput.getTimestamp());
 //                objectNode.set("output", outputNode);
-                return;
             }
-
-            //accountToAddFunds.deposit(commandInput.getAmount(), user);
         }
     }
 }

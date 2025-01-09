@@ -43,9 +43,6 @@ public class BusinessReport implements ReportGenerator {
         }
 
         String type = commandInput.getType();
-//        BigDecimal roundedBalance = new BigDecimal(businessAccount.getBalance()).setScale(2, RoundingMode.HALF_UP);
-//        BigDecimal roundedSpendingLimit = new BigDecimal(businessAccount.getSpendingLimitForEmployees()).setScale(2, RoundingMode.HALF_UP);
-//        BigDecimal roundedDepositLimit = new BigDecimal(businessAccount.getDepositLimit()).setScale(2, RoundingMode.HALF_UP);
 
         ObjectNode outputNode = mapper.createObjectNode();
         outputNode.put("IBAN", businessAccount.getIban());
@@ -57,7 +54,7 @@ public class BusinessReport implements ReportGenerator {
 
         if (type.equals("commerciant")) {
             ArrayNode commerciantsArray = mapper.createArrayNode();
-            for (Commerciant commerciant : businessAccount.getCommerciants()) {
+            for (Commerciant commerciant : businessAccount.getCommerciantsAddedByAssociates()) {
                 commerciantsArray.add(commerciant.transformToObjectNodeForBusinessReport(mapper));
             }
             outputNode.set("commerciants", commerciantsArray);
@@ -70,20 +67,17 @@ public class BusinessReport implements ReportGenerator {
             // managers output
             ArrayNode managersArray = mapper.createArrayNode();
             for (User manager : businessAccount.getManagers()) {
-                managersArray.add(manager.associateTransformToAnObjectNode(mapper));
+                managersArray.add(manager.associateTransformToAnObjectNode(mapper, businessAccount));
             }
             outputNode.set("managers", managersArray);
 
             // employees output
             ArrayNode employeesArray = mapper.createArrayNode();
             for (User employee : businessAccount.getEmployees()) {
-                employeesArray.add(employee.associateTransformToAnObjectNode(mapper));
+                employeesArray.add(employee.associateTransformToAnObjectNode(mapper, businessAccount));
             }
             outputNode.set("employees", employeesArray);
         }
-
-        // update the account's balance
-        //businessAccount.setBalance(roundedBalance.doubleValue());
 
         return outputNode;
     }

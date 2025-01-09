@@ -8,7 +8,6 @@ import org.poo.accounts.ClassicAccount;
 import org.poo.accounts.SavingsAccount;
 import org.poo.bank.Bank;
 import org.poo.fileio.CommandInput;
-import org.poo.users.Owner;
 import org.poo.users.User;
 
 public final class AddAccountCommand extends Command {

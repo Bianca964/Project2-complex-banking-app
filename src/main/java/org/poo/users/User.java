@@ -16,6 +16,8 @@ import org.poo.transactions.SplitPayment;
 import org.poo.transactions.Transaction;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.poo.utils.Utils.generateCardNumber;
 
@@ -32,9 +34,6 @@ public class User {
     // for splitPayment
     private ArrayList<SplitPayment> splitPayments;
 
-    private ArrayList<Commerciant> commerciants;
-
-
     private boolean discountFood;
     private boolean discountClothes;
     private boolean discountTech;
@@ -43,10 +42,12 @@ public class User {
     private boolean discountClothesWasUsed;
     private boolean discountTechWasUsed;
 
-    // for business accounts
-    private double amountSpentOnBusinessAccount;
-    private double amountDepositedOnBusinessAccount;
+    private Map<BusinessAccount, Double> amountsDepositedOnBusinessAccounts;
+    private Map<BusinessAccount, Double> amountsSpentOnBusinessAccounts;
+
+    // for employee
     private ArrayList<Card> cardsAddedToBusinessAccount;
+
 
 //    enum DiscountType {
 //        FOOD,
@@ -78,11 +79,10 @@ public class User {
 
         this.splitPayments = new ArrayList<>();
 
-        this.amountSpentOnBusinessAccount = 0;
-        this.amountDepositedOnBusinessAccount = 0;
-        this.cardsAddedToBusinessAccount = new ArrayList<>();
+        this.amountsDepositedOnBusinessAccounts = new HashMap<>();
+        this.amountsSpentOnBusinessAccounts = new HashMap<>();
 
-        this.commerciants = new ArrayList<>();
+        this.cardsAddedToBusinessAccount = new ArrayList<>();
 
     }
 
@@ -97,13 +97,27 @@ public class User {
 
 
 
-    public void increaseAmountSpentOnBusinessAccount(double amount) {
-        this.amountSpentOnBusinessAccount += amount;
+    public void increaseAmountSpentOnBusinessAccount(BusinessAccount account, double amount) {
+        double currentAmount = amountsSpentOnBusinessAccounts.getOrDefault(account, 0.0);
+        amountsSpentOnBusinessAccounts.put(account, currentAmount + amount);
     }
 
-    public void increaseAmountDepositedOnBusinessAccount(double amount) {
-        this.amountDepositedOnBusinessAccount += amount;
+    public double getAmountSpentOnBusinessAccount(BusinessAccount account) {
+        return amountsSpentOnBusinessAccounts.getOrDefault(account, 0.0);
     }
+
+    public void increaseAmountDepositedOnBusinessAccount(BusinessAccount account, double amount) {
+        double currentAmount = amountsDepositedOnBusinessAccounts.getOrDefault(account, 0.0);
+        amountsDepositedOnBusinessAccounts.put(account, currentAmount + amount);
+    }
+
+    public double getAmountDepositedOnBusinessAccount(BusinessAccount account) {
+        return amountsDepositedOnBusinessAccounts.getOrDefault(account, 0.0);
+    }
+
+
+
+
 
     public String getUsername() {
         return userInfo.getLastName() + " " + userInfo.getFirstName();
@@ -217,38 +231,6 @@ public class User {
 
 
 
-
-
-
-
-
-    public Commerciant getCommerciant(final String name) {
-        for (Commerciant commerciant : commerciants) {
-            if (commerciant.getName().equals(name)) {
-                return commerciant;
-            }
-        }
-        return null;
-    }
-
-    public Commerciant getCommerciant(final Commerciant wantedCommerciant) {
-        for (Commerciant c : commerciants) {
-            if (c.getName().equals(wantedCommerciant.getName())) {
-                return c;
-            }
-        }
-        return null;
-    }
-
-    public void addCommerciant(final Commerciant commerciant) {
-        commerciants.add(commerciant);
-    }
-
-    public void incrementNrOfTrnscForCommerciant(final Commerciant commerciant) {
-        if (commerciant != null) {
-            commerciant.incrementNrTransactions();
-        }
-    }
 
 
 
@@ -555,6 +537,8 @@ public class User {
 
         this.addTransaction(transaction);
         account.addTransaction(transaction);
+
+        System.out.println("One-time card " + cardNumber + " created for account " + iban);
     }
 
     /**
@@ -568,9 +552,10 @@ public class User {
                 index = i;
                 break;
             }
-            index = i + 1; // Dacă ajunge la final, se inserează la sfârșit
+            // if got to the end, insert at the end
+            index = i + 1;
         }
-        transactions.add(index, transaction); // Inserăm tranzacția la poziția calculat
+        transactions.add(index, transaction);
     }
 
     /**
@@ -624,6 +609,22 @@ public class User {
         Account account = getAccount(iban);
 
         if (account != null) {
+
+            // if the account is business, only the owner can delete de account
+            if (account.isBusinessAccount()) {
+                BusinessAccount businessAccount = (BusinessAccount) account;
+                if (!businessAccount.getOwner().getEmail().equals(this.getEmail())) {
+                    Transaction transaction = new Transaction.TransactionBuilder()
+                            .setTimestamp(timestamp)
+                            .setDescription("Account couldn't be deleted - only the owner can delete the account")
+                            .build();
+                    this.addTransaction(transaction);
+                    throw new Exception("Account couldn't be deleted - see org.poo.transactions "
+                            + "for details");
+                }
+            }
+
+
             if (account.hasMoneyInAccount()) {
                 // add transaction to user
                 Transaction transaction = new Transaction.TransactionBuilder()
@@ -711,12 +712,12 @@ public class User {
     }
 
 
-    public ObjectNode associateTransformToAnObjectNode(final ObjectMapper objectMapper) {
+    public ObjectNode associateTransformToAnObjectNode(final ObjectMapper objectMapper, final BusinessAccount businessAccount) {
         ObjectNode userNode = objectMapper.createObjectNode();
 
         userNode.put("username", getUsername());
-        userNode.put("spent", getAmountSpentOnBusinessAccount());
-        userNode.put("deposited", getAmountDepositedOnBusinessAccount());
+        userNode.put("spent", getAmountSpentOnBusinessAccount(businessAccount));
+        userNode.put("deposited", getAmountDepositedOnBusinessAccount(businessAccount));
 
         return userNode;
     }

@@ -20,7 +20,29 @@ public class ChangeSpendingLimitCommand extends Command {
         User userTryingToChangeIt = bank.getUserWithEmail(commandInput.getEmail());
         Account account = bank.getAccountWithIBAN(commandInput.getAccount());
 
-        if (account != null && account.isBusinessAccount() && userTryingToChangeIt != null) {
+        if (account == null) {
+            addCommandAndTimestamp(objectNode);
+
+            ObjectNode outputNode = mapper.createObjectNode();
+            outputNode.put("description", "Account not found");
+            outputNode.put("timestamp", commandInput.getTimestamp());
+            objectNode.set("output", outputNode);
+            return;
+        }
+
+        if (!account.isBusinessAccount()) {
+            addCommandAndTimestamp(objectNode);
+
+            ObjectNode outputNode = mapper.createObjectNode();
+            outputNode.put("description", "This is not a business account");
+            outputNode.put("timestamp", commandInput.getTimestamp());
+            objectNode.set("output", outputNode);
+            return;
+        }
+
+
+
+        if (account.isBusinessAccount() && userTryingToChangeIt != null) {
             try {
                 ((BusinessAccount) account).setSpendingLimitForEmployees(newSpeedingLimit, userTryingToChangeIt);
             } catch (Exception e) {

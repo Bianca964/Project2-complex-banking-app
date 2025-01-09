@@ -42,6 +42,10 @@ public class Card {
         this.warning = true;
     }
 
+    public boolean isOneTimeCard() {
+        return false;
+    }
+
     /**
      * This method is overridden in the OneTimeCard class
      * @param account the account of the user

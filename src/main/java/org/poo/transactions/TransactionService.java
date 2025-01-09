@@ -3,13 +3,12 @@ package org.poo.transactions;
 import org.poo.accounts.Account;
 import org.poo.accounts.BusinessAccount;
 import org.poo.bank.Bank;
+import org.poo.cards.OneTimeCard;
 import org.poo.serviceplans.ServicePlan;
 import org.poo.users.User;
 import org.poo.cards.Card;
 import org.poo.fileio.CommandInput;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 
 public class TransactionService {
     private final Bank bank;
@@ -50,6 +49,13 @@ public class TransactionService {
             if (!businessAccount.isOwner(user) && !businessAccount.isAssociate(user)) {
                 throw new Exception("Card not found");
             }
+        } else {
+
+            // daca contul e unul normal si nu apartine celui care face plata
+            user = bank.getUserWithAccount(account.getIban());
+            if (user == null) {
+                throw new Exception("Card not found");
+            }
         }
 
         Commerciant commerciant = bank.getCommerciantWithName(command.getCommerciant());
@@ -79,7 +85,6 @@ public class TransactionService {
             BusinessAccount businessAccount = (BusinessAccount) account;
             User owner = businessAccount.getOwner();
             amountWithComission = owner.getServicePlan().applyComission(amountInAccountCurrency, businessAccount.getCurrency());
-            //BigDecimal roundedAmountWithComission = new BigDecimal(amountWithComission).setScale(2, RoundingMode.HALF_UP);
 
             if (businessAccount.hasEnoughBalance(amountWithComission)) {
                 try {
@@ -104,8 +109,8 @@ public class TransactionService {
                 // the money sent by the owner of the account doesn't count
                 if (!businessAccount.isOwner(user)) {
                     // if the commerciant is not in the list of commerciants of the account, add it
-                    if (!businessAccount.hasCommerciant(commerciant)) {
-                        businessAccount.addCommerciant(commerciant);
+                    if (!businessAccount.hasCommerciantAddedByAssociate(commerciant)) {
+                        businessAccount.addCommerciantAddedByAssociate(commerciant);
                     }
                     // add the received amount to the commerciant
                     businessAccount.addAmountReceivedByCommerciant(amountInAccountCurrency, commerciant);
@@ -140,13 +145,15 @@ public class TransactionService {
             }
         }
 
-        card.handlePostPayment(account, user, command, amountInAccountCurrency);
 
         // increase the number of payments of at least 300 RON (useful for the upgradePlan case)
         double amountInRon = command.getAmount() * bank.getExchangeRate(command.getCurrency(), "RON");
         if (user.getServicePlan().getName().equals("silver") && amountInRon >= 300) {
             user.increaseMin300payments();
         }
+
+        card.handlePostPayment(account, user, command, amountInAccountCurrency);
+
 
         // CASHBACK
 
@@ -164,6 +171,8 @@ public class TransactionService {
         System.out.println("--------------------");
 
 
+
+
     }
 
 
@@ -178,17 +187,13 @@ public class TransactionService {
     public void applyCashBack(Commerciant commerciant, User sender, Account senderAccount, double amountInAccountCurrency, double amountInRon) {
 
         // if account already has the commerciant, increment the number of transactions
-        if (sender.getCommerciant(commerciant) != null) {
-            sender.incrementNrOfTrnscForCommerciant(commerciant);
+        if (senderAccount.getCommerciant(commerciant) != null) {
+            senderAccount.incrementNrOfTrnscForCommerciant(commerciant);
         } else {
             // if account doesn't have the commerciant, add it to account
-            sender.addCommerciant(commerciant);
-            System.out.println("Commerciants of account " + senderAccount.getIban() + " are " + sender.getCommerciants().size());
-            sender.getCommerciant(commerciant).setNrTransactions(1);
+            senderAccount.addCommerciant(commerciant);
+            senderAccount.getCommerciant(commerciant).setNrTransactions(1);
         }
-
-
-
 
 
         if (commerciant.getCashbackStrategy().equals("nrOfTransactions")) {
@@ -365,6 +370,10 @@ public class TransactionService {
         // withdraw the amount from the sender's account
         double amountSender = command.getAmount();
         double amountSenderWithComission = senderUser.getServicePlan().applyComission(amountSender, senderAccount.getCurrency());
+        // if the money are sent from a business account, the comission is from the owner!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        if (senderAccount.isBusinessAccount()) {
+            amountSenderWithComission = ((BusinessAccount)senderAccount).getOwner().getServicePlan().applyComission(amountSender, senderAccount.getCurrency());
+        }
 
         if (senderAccount.hasEnoughBalance(amountSenderWithComission)) {
             senderAccount.withdraw(amountSenderWithComission);
@@ -376,8 +385,8 @@ public class TransactionService {
                 // the money sent by the owner of the account doesn't count
                 if (!businessAccount.isOwner(senderUser)) {
                     // if the commerciant is not in the list of commerciants of the account, add it
-                    if (!businessAccount.hasCommerciant(receiverCommerciant)) {
-                        businessAccount.addCommerciant(receiverCommerciant);
+                    if (!businessAccount.hasCommerciantAddedByAssociate(receiverCommerciant)) {
+                        businessAccount.addCommerciantAddedByAssociate(receiverCommerciant);
                     }
                     // add the received amount to the commerciant
                     businessAccount.addAmountReceivedByCommerciant(amountSender, receiverCommerciant);
@@ -451,6 +460,18 @@ public class TransactionService {
             throw new Exception("User not found");
         }
 
+        // if the account is business and the user is not associated with the account
+        if (account.isBusinessAccount()) {
+            BusinessAccount businessAccount = (BusinessAccount) account;
+            if (!businessAccount.isOwner(user) && !businessAccount.isAssociate(user)) {
+                throw new Exception("Card not found");
+            }
+        }
+
+//        if (card.isOneTimeCard()) {
+//            throw new Exception("Card not found");
+//        }
+
         // if the card is frozen, don't do the transaction
         if (card.isFrozen()) {
             Transaction transaction = new Transaction.TransactionBuilder()
@@ -502,6 +523,15 @@ public class TransactionService {
 
         user.addTransaction(transaction);
         account.addTransaction(transaction);
+
+
+//        // if it's oneTimeCard, reset the card number
+//        if (card.isOneTimeCard()) {
+//            System.out.println("TransactionService.cashWithdrawal - reseteaza card numberul " + card.getCardNumber() + " ar timestamp " + commandInput.getTimestamp());
+//            ((OneTimeCard)card).resetCardNumber();
+//            System.out.println("la nou card number " + card.getCardNumber());
+//        }
+
     }
 
 

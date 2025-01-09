@@ -9,6 +9,7 @@ import org.poo.accounts.Account;
 import org.poo.accounts.BusinessAccount;
 import org.poo.bank.*;
 import org.poo.cards.Card;
+import org.poo.cards.OneTimeCard;
 import org.poo.fileio.UserInput;
 import org.poo.serviceplans.*;
 import org.poo.transactions.Commerciant;
@@ -384,13 +385,9 @@ public class User {
     public void upgradePlan(Account account, final Bank bank, final int timestamp, final String newPlanType) throws Exception {
 
         // if user has silver plan, make the automatic upgrade to gold plan (without fee)
-//        if (min300payments >= 5 && this.servicePlan.getName().equals("silver")) {
-//            this.servicePlan = new GoldPlan(bank);
+//        if (checkForUpgradeToGoldPlan(account, bank, timestamp)) {
 //            return;
 //        }
-        if (checkForUpgradeToGoldPlan(account, bank, timestamp)) {
-            return;
-        }
 
 
 
@@ -416,11 +413,9 @@ public class User {
 
         if (newServicePlan.getUpgradeLevel() < this.servicePlan.getUpgradeLevel()) {
             return;
-            //throw new Exception("You cannot downgrade your plan.");
         }
 
         // upgrade the plan
-        // NU VERIFIC DACA FAC UPGRADE DE LA STUDENT LA STANDARD SAU INVERS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         double exchangeRateFromRon = 0.0;
         try {
             exchangeRateFromRon = bank.getExchangeRate("RON", account.getCurrency());
@@ -459,6 +454,9 @@ public class User {
 
 
 
+    public boolean hasCardAddedToBusinessAccount(final Card card) {
+        return cardsAddedToBusinessAccount.contains(card);
+    }
 
 
 
@@ -466,11 +464,16 @@ public class User {
      * @param cardNumber the card number which will be deleted
      * @param timestamp the timestamp of the command
      */
-    public void deleteCard(final String cardNumber, final int timestamp) {
+    public void deleteCard(final String cardNumber, final int timestamp, final Bank bank) {
         for (Account account : accounts) {
             for (Card card : account.getCards()) {
                 if (card.getCardNumber().equals(cardNumber)) {
-                    account.getCards().remove(card);
+                    // if the account stil has money in it, don't delete the card
+                    if (account.hasMoneyInAccount()) {
+                        return;
+                    }
+
+                    account.deleteCard(card, this);
 
                     Transaction transaction = new Transaction.TransactionBuilder()
                             .setTimestamp(timestamp)
@@ -485,6 +488,19 @@ public class User {
                     return;
                 }
             }
+        }
+
+        // if reached here, the one deleting the card doesn't have the card in his accounts,
+        // but wants to delete it from a business account in which he is an employee or a manager
+        Account account = bank.getAccountWithCard(cardNumber);
+        if (account == null || account.hasMoneyInAccount()) {
+            return;
+        }
+
+        Card card = account.getCardWithCardNumber(cardNumber);
+        if (account.isBusinessAccount()) {
+            BusinessAccount businessAccount =  (BusinessAccount) account;
+            businessAccount.deleteCard(card, this);
         }
     }
 
@@ -525,7 +541,7 @@ public class User {
         if (account == null) {
             return;
         }
-        account.createOneTimeCard(cardNumber);
+        account.createOneTimeCard(cardNumber, this);
 
         Transaction transaction = new Transaction.TransactionBuilder()
                 .setTimestamp(timestamp)
@@ -537,8 +553,6 @@ public class User {
 
         this.addTransaction(transaction);
         account.addTransaction(transaction);
-
-        System.out.println("One-time card " + cardNumber + " created for account " + iban);
     }
 
     /**

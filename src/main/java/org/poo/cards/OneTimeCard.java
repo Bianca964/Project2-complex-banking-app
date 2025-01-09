@@ -69,9 +69,7 @@ public class OneTimeCard extends Card {
         account.addTransaction(transactionOneTimeCard);
 
         // reset the card number of the OneTimeCard
-        System.out.println("OneTimeCard.handlePostPayment - reseteaza card numberul " + this.getCardNumber() + " ar timestamp " + command.getTimestamp());
         this.resetCardNumber();
-        System.out.println("la nou card number " + this.getCardNumber());
 
         // the transaction for the new card
         Transaction transactionNewOneTimeCard = new Transaction.TransactionBuilder()

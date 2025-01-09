@@ -27,12 +27,9 @@ public final class AddAccountCommand extends Command {
             account = new SavingsAccount(commandInput.getCurrency(), accountType,
                     commandInput.getTimestamp(), commandInput.getInterestRate());
         } else { // business account
-            //System.out.println("email input = " + commandInput.getEmail());
             User owner = bank.getUserWithEmail(commandInput.getEmail());
             account = new BusinessAccount(commandInput.getCurrency(), accountType,
                     commandInput.getTimestamp(), owner, bank);
-
-            //System.out.println("owner email = " + ((BusinessAccount)account).getOwner().getEmail());
         }
 
         bank.addAccountToUser(commandInput.getEmail(), account, accountType);

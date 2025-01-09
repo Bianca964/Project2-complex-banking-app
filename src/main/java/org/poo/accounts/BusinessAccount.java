@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.poo.bank.Bank;
 import org.poo.cards.Card;
+import org.poo.cards.OneTimeCard;
 import org.poo.transactions.Commerciant;
 import org.poo.users.User;
 
@@ -163,6 +164,7 @@ public class BusinessAccount extends Account {
 
 
 
+    @Override
     public void createCard(final String cardNumber, final User user) {
         Card card = new Card(cardNumber);
 
@@ -173,8 +175,47 @@ public class BusinessAccount extends Account {
         }
 
         // add card to account
-        this.addCard(card);
+        //this.addCard(card);
+        addCard(card);
     }
+
+
+    @Override
+    public void createOneTimeCard(final String cardNumber, final User user) {
+        OneTimeCard card = new OneTimeCard(cardNumber);
+
+        // tb sa stiu ce fel de rol are cel care l a creat (daca e employee tb sa l adaug
+        // la lista lui de carduri adaugate la acest cont de business)
+        if (isEmployee(user)) {
+            user.addCardToCardsAddedToBusinessAccount(card);
+        }
+
+        addCard(card);
+    }
+
+
+    @Override
+    public void deleteCard(final Card card, final User user) {
+        if (card != null) {
+            // if the one deleting the card is an employee (he can delete only the cards he added)
+            if (isEmployee(user)) {
+                // if it wasn't added by him, don't delete it
+                if (!user.hasCardAddedToBusinessAccount(card)) {
+                    return;
+                }
+
+                // if it was added by him, remove it from his list
+                user.removeCardFromCardsAddedToBusinessAccount(card);
+                getCards().remove(card);
+            } else if (isOwner(user) || isManager(user)) {
+                getCards().remove(card);
+            }
+
+
+        }
+    }
+
+
 
 
     @Override

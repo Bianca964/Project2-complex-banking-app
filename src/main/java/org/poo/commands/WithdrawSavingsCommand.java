@@ -20,10 +20,10 @@ public class WithdrawSavingsCommand extends Command {
             try {
                 bank.withdrawSavings(commandInput);
             } catch (Exception e) {
-                addCommandAndTimestamp(objectNode);
-                ObjectNode outputNode = mapper.createObjectNode();
-                outputNode.put("error", e.getMessage());
-                objectNode.set("output", outputNode);
+//                addCommandAndTimestamp(objectNode);
+//                ObjectNode outputNode = mapper.createObjectNode();
+//                outputNode.put("error", e.getMessage());
+//                objectNode.set("output", outputNode);
             }
         }
     }

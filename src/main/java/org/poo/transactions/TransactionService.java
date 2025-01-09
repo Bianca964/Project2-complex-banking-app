@@ -50,10 +50,9 @@ public class TransactionService {
                 throw new Exception("Card not found");
             }
         } else {
-
             // daca contul e unul normal si nu apartine celui care face plata
             user = bank.getUserWithAccount(account.getIban());
-            if (user == null) {
+            if (user == null || !user.getEmail().equals(command.getEmail())) {
                 throw new Exception("Card not found");
             }
         }
@@ -152,7 +151,9 @@ public class TransactionService {
             user.increaseMin300payments();
         }
 
+
         card.handlePostPayment(account, user, command, amountInAccountCurrency);
+
 
 
         // CASHBACK
@@ -161,8 +162,10 @@ public class TransactionService {
         System.out.println("payOnline timestamp " + command.getTimestamp() + " paid converted amount " + amountInAccountCurrency + account.getCurrency() + " amount in RON" + amountInRon + " to " + commerciant.getName() + " card " +
                 card.getCardNumber() + " from account " + account.getIban() + " balance before cashback " + account.getBalance() + account.getCurrency() + " plan " + user.getServicePlan().getName() + " the comission is " + (amountWithComission - amountInAccountCurrency));
 
-        applyCashBack(commerciant, user, account, amountInAccountCurrency, amountInRon);
         user.checkForUpgradeToGoldPlan(account, bank, command.getTimestamp());
+        applyCashBack(commerciant, user, account, amountInAccountCurrency, amountInRon);
+
+
 
 
 
@@ -239,7 +242,6 @@ public class TransactionService {
         Account senderAccount = bank.getAccountWithIBAN(command.getAccount());
         Account receiverAccount = bank.getAccountWithIBAN(command.getReceiver());
         User senderUser = bank.getUserWithEmail(command.getEmail());
-        //User senderUser = bank.getUserWithAccount(command.getAccount());
         User receiverUser = bank.getUserWithAccount(command.getReceiver());
 
         if (senderUser == null || command.getReceiver().isEmpty()) {
@@ -427,13 +429,18 @@ public class TransactionService {
             return;
         }
         double amountInRon = amountSender * exchangeRate;
-        applyCashBack(receiverCommerciant, senderUser, senderAccount, amountSender, amountInRon);
+
+        //applyCashBack(receiverCommerciant, senderUser, senderAccount, amountSender, amountInRon);
 
         // increase the number of min 300 RON payments if the sender has silver plan
         if (senderUser.getServicePlan().getName().equals("silver") && amountInRon >= 300) {
             senderUser.increaseMin300payments();
         }
         senderUser.checkForUpgradeToGoldPlan(senderAccount, bank, command.getTimestamp());
+
+        applyCashBack(receiverCommerciant, senderUser, senderAccount, amountSender, amountInRon);
+
+
     }
 
 
@@ -466,11 +473,13 @@ public class TransactionService {
             if (!businessAccount.isOwner(user) && !businessAccount.isAssociate(user)) {
                 throw new Exception("Card not found");
             }
+        } else {
+            // if the one trying to withdraw money is not the owner of the account
+            user = bank.getUserWithAccount(account.getIban());
+            if (user == null || !user.getEmail().equals(commandInput.getEmail())) {
+                throw new Exception("Card not found");
+            }
         }
-
-//        if (card.isOneTimeCard()) {
-//            throw new Exception("Card not found");
-//        }
 
         // if the card is frozen, don't do the transaction
         if (card.isFrozen()) {
@@ -523,15 +532,6 @@ public class TransactionService {
 
         user.addTransaction(transaction);
         account.addTransaction(transaction);
-
-
-//        // if it's oneTimeCard, reset the card number
-//        if (card.isOneTimeCard()) {
-//            System.out.println("TransactionService.cashWithdrawal - reseteaza card numberul " + card.getCardNumber() + " ar timestamp " + commandInput.getTimestamp());
-//            ((OneTimeCard)card).resetCardNumber();
-//            System.out.println("la nou card number " + card.getCardNumber());
-//        }
-
     }
 
 

@@ -16,7 +16,7 @@ public final class DeleteCardCommand extends Command {
     public void execute(final Bank bank, final ObjectNode objectNode) {
         User user = bank.getUserWithEmail(commandInput.getEmail());
         if (user != null) {
-            user.deleteCard(commandInput.getCardNumber(), commandInput.getTimestamp());
+            user.deleteCard(commandInput.getCardNumber(), commandInput.getTimestamp(), bank);
         }
     }
 }

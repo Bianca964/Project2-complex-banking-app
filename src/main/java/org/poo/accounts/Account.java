@@ -119,13 +119,22 @@ public abstract class Account {
      * Creates a one-time card with the given card number
      * @param cardNumber the card number of the one-time card to be created
      */
-    public void createOneTimeCard(final String cardNumber) {
+    public void createOneTimeCard(final String cardNumber, final User user) {
         OneTimeCard card = new OneTimeCard(cardNumber);
-        cards.add(card);
+        addCard(card);
     }
 
     public void addCard(final Card card) {
         cards.add(card);
+    }
+
+    public Card getCardWithCardNumber(final String cardNumber) {
+        for (Card card : cards) {
+            if (card.getCardNumber().equals(cardNumber)) {
+                return card;
+            }
+        }
+        return null;
     }
 
     /**
@@ -137,6 +146,12 @@ public abstract class Account {
         addCard(card);
     }
 
+    public void deleteCard(final Card card, final User user) {
+        if (card != null) {
+            cards.remove(card);
+        }
+    }
+
     /**
      * Increases the balance of the account
      * @param amount the amount to be deposited in the account
@@ -144,6 +159,8 @@ public abstract class Account {
     public void deposit(final double amount) {
         balance += amount;
     }
+
+
 
 
 

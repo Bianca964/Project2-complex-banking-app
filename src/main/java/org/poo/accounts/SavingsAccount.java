@@ -16,14 +16,6 @@ public class SavingsAccount extends Account {
         this.interestRate = interestRate;
     }
 
-//    /**
-//     * @return true as the savings account has interest
-//     */
-//    @Override
-//    public boolean hasInterest() {
-//        return true;
-//    }
-
     /**
      * adds interest to the account
      * @return the interest added to the account

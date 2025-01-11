@@ -38,7 +38,6 @@ public class Card {
      * Sets the card status to warning
      */
     public void warnCard() {
-        this.status = false;
         this.warning = true;
     }
 

@@ -118,6 +118,10 @@ public class BusinessAccount extends Account {
     }
 
     public void addAssociate(final User associate, final String role) {
+        // if it s already an associate, don't add it again
+        if (isAssociate(associate) || isOwner(associate)) {
+            return;
+        }
         if (role.equals("employee")) {
             addEmployee(associate);
         } else if (role.equals("manager")) {
@@ -219,12 +223,16 @@ public class BusinessAccount extends Account {
 
 
     @Override
-    public void addFunds(final double amount, final User user) throws Exception {
+    public void addFunds(final double amount, final User user) {
+        if (!isOwner(user) && !isAssociate(user)) {
+            return;
+        }
+
         // add to the associated user's amount deposited on the business account
         try {
             increaseAmountDepositedOnBusinessAccountByUser(amount, user);
         } catch (Exception e) {
-            throw new Exception(e.getMessage());
+            return;
         }
 
         // add funds to the balance of the account
@@ -272,6 +280,12 @@ public class BusinessAccount extends Account {
         return amountSpent;
     }
 
+    @Override
+    public void setAlias(final String alias, final User user) {
+        if (isOwner(user)) {
+            this.setAlias(alias);
+        }
+    }
 
 
 

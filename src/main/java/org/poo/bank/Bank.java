@@ -201,6 +201,8 @@ public final class Bank extends ExchangeRate {
             throw new Exception("Card not found");
         }
 
+        System.out.println("tp " + timestamp + " balance of the account: " + account.getBalance() + " vs min balance: " + account.getMinBalance());
+
         // Freeze
         if (account.getBalance() <= account.getMinBalance()) {
             Card card = account.getCard(cardNumber);
@@ -326,10 +328,10 @@ public final class Bank extends ExchangeRate {
      * @param iban the IBAN of the account whose alias is set
      * @param alias the new alias
      */
-    public void setAlias(final String iban, final String alias) {
+    public void setAlias(final String iban, final String alias, final User user) {
         Account account = getAccountWithIBAN(iban);
         if (account != null) {
-            account.setAlias(alias);
+            account.setAlias(alias, user);
         }
     }
 

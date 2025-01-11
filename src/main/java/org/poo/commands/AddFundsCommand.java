@@ -19,15 +19,7 @@ public final class AddFundsCommand extends Command {
         Account accountToAddFunds = bank.getAccountWithIBAN(commandInput.getAccount());
         if (accountToAddFunds != null) {
             User user = bank.getUserWithEmail(commandInput.getEmail());
-            try {
-                accountToAddFunds.addFunds(commandInput.getAmount(), user);
-            } catch (Exception e) {
-//                addCommandAndTimestamp(objectNode);
-//                ObjectNode outputNode = mapper.createObjectNode();
-//                outputNode.put("error", e.getMessage());
-//                outputNode.put("timestamp", commandInput.getTimestamp());
-//                objectNode.set("output", outputNode);
-            }
+            accountToAddFunds.addFunds(commandInput.getAmount(), user);
         }
     }
 }

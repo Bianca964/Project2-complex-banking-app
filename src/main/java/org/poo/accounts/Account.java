@@ -115,6 +115,10 @@ public abstract class Account {
         this.minBalance = argMinBalance;
     }
 
+    public void setAlias(final String alias, final User user) {
+        this.alias = alias;
+    }
+
     /**
      * Creates a one-time card with the given card number
      * @param cardNumber the card number of the one-time card to be created
@@ -166,7 +170,7 @@ public abstract class Account {
 
 
 
-    public void addFunds(final double amount, final User user) throws Exception{
+    public void addFunds(final double amount, final User user) {
         this.deposit(amount);
     }
 

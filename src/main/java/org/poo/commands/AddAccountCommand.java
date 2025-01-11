@@ -30,6 +30,8 @@ public final class AddAccountCommand extends Command {
             User owner = bank.getUserWithEmail(commandInput.getEmail());
             account = new BusinessAccount(commandInput.getCurrency(), accountType,
                     commandInput.getTimestamp(), owner, bank);
+
+            System.out.println("Business account created by owner " + owner.getEmail() + " at timestamp " + commandInput.getTimestamp() + " with iban " + account.getIban());
         }
 
         bank.addAccountToUser(commandInput.getEmail(), account, accountType);

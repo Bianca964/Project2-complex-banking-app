@@ -21,9 +21,7 @@ public class AddNewBusinessAssociateCommand extends Command {
 
         if (account != null && account.isBusinessAccount() && associate != null) {
             ((BusinessAccount) account).addAssociate(associate, commandInput.getRole());
+            System.out.println("Associate " + associate.getEmail() + " added to business account " + account.getIban() + " with role " + commandInput.getRole() + " at timestamp " + commandInput.getTimestamp());
         }
-
-        // adaug si la ascociat contul - NU TREBUIE!
-        //bank.addAccountToUser(commandInput.getEmail(), account, "business");
     }
 }

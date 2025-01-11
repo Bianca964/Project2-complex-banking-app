@@ -117,7 +117,7 @@ public class TransactionService {
                 }
 
             } else {
-                // NU TOATA LUMEA ARE SUFICIENTE FONDURI
+                // CONTUL NU ARE SUFIECIENTE FONDURI
                 Transaction transaction = new Transaction.TransactionBuilder()
                         .setDescription("Insufficient funds")
                         .setTimestamp(command.getTimestamp())
@@ -147,9 +147,13 @@ public class TransactionService {
 
         // increase the number of payments of at least 300 RON (useful for the upgradePlan case)
         double amountInRon = command.getAmount() * bank.getExchangeRate(command.getCurrency(), "RON");
+        if (account.isBusinessAccount()) {
+            user = ((BusinessAccount) account).getOwner();
+        }
         if (user.getServicePlan().getName().equals("silver") && amountInRon >= 300) {
             user.increaseMin300payments();
         }
+
 
 
         card.handlePostPayment(account, user, command, amountInAccountCurrency);
@@ -162,8 +166,8 @@ public class TransactionService {
         System.out.println("payOnline timestamp " + command.getTimestamp() + " paid converted amount " + amountInAccountCurrency + account.getCurrency() + " amount in RON" + amountInRon + " to " + commerciant.getName() + " card " +
                 card.getCardNumber() + " from account " + account.getIban() + " balance before cashback " + account.getBalance() + account.getCurrency() + " plan " + user.getServicePlan().getName() + " the comission is " + (amountWithComission - amountInAccountCurrency));
 
-        user.checkForUpgradeToGoldPlan(account, bank, command.getTimestamp());
         applyCashBack(commerciant, user, account, amountInAccountCurrency, amountInRon);
+        user.checkForUpgradeToGoldPlan(account, bank, command.getTimestamp());
 
 
 
@@ -198,12 +202,16 @@ public class TransactionService {
             senderAccount.getCommerciant(commerciant).setNrTransactions(1);
         }
 
+        // if there is a discount available, apply it and then add another if possible
+        if (sender.hasDiscountAvailable()) {
+            sender.applyDiscount(senderAccount, commerciant, amountInAccountCurrency);
+        }
 
         if (commerciant.getCashbackStrategy().equals("nrOfTransactions")) {
-            // if there is a discount available, apply it and then add another if possible
-            if (sender.hasDiscountAvailable()) {
-                sender.applyDiscount(senderAccount, commerciant, amountInAccountCurrency);
-            }
+//            // if there is a discount available, apply it and then add another if possible
+//            if (sender.hasDiscountAvailable()) {
+//                sender.applyDiscount(senderAccount, commerciant, amountInAccountCurrency);
+//            }
 
             if (commerciant.getNrTransactions() == 2 && !sender.isDiscountFoodUsed()) {
                 sender.setDiscountFood();
@@ -217,10 +225,10 @@ public class TransactionService {
         }
 
         if (commerciant.getCashbackStrategy().equals("spendingThreshold")) {
-            // if there is a discount available, apply it and then add another if possible
-            if (sender.hasDiscountAvailable()) {
-                sender.applyDiscount(senderAccount, commerciant, amountInAccountCurrency);
-            }
+//            // if there is a discount available, apply it and then add another if possible
+//            if (sender.hasDiscountAvailable()) {
+//                sender.applyDiscount(senderAccount, commerciant, amountInAccountCurrency);
+//            }
 
             senderAccount.addAmountForSpendingThreshold(amountInRon);
             sender.applySpendingThresholdDiscount(senderAccount, amountInAccountCurrency);
@@ -279,8 +287,6 @@ public class TransactionService {
                 receiverAccount.getCurrency());
         double amountInReceiverCurrency = command.getAmount() * exchangeRate;
 
-
-
         // if the senderAccount is business and the sender si employee, need to check for the spending limit
         if (senderAccount.isBusinessAccount() && ((BusinessAccount)senderAccount).isEmployee(senderUser)) {
             // if the spending limit is exceeded, add a transaction to the account and the user
@@ -290,19 +296,11 @@ public class TransactionService {
                         .setTimestamp(command.getTimestamp())
                         .build();
 
-                // add transaction to the account
                 senderAccount.addTransaction(transaction);
-
-                // add trasnaction to the sender(employee)
                 senderUser.addTransaction(transaction);
-
-                // add transaction to the owner of the business account ???????????????????????????????????????????????????????
-                // user.addTransaction(transaction);
                 return;
             }
         }
-
-
 
         Transaction transactionSender = new Transaction.TransactionBuilder()
                 .setDescription(command.getDescription())
@@ -324,13 +322,11 @@ public class TransactionService {
                 .setTransferType("received")
                 .build();
 
-
-        // if the money are sent from a business account, the comission is from the owner
+        // if the money is sent from a business account, the comission is from the owner
         ServicePlan servicePlanForComission = senderUser.getServicePlan();
         if (senderAccount.isBusinessAccount()) {
             servicePlanForComission = ((BusinessAccount)senderAccount).getOwner().getServicePlan();
         }
-
 
         try {
             transactionSender.doTransactionSendMoney(servicePlanForComission);
@@ -356,10 +352,13 @@ public class TransactionService {
         // increase the number of min 300 RON payments if the sender has silver plan
         double exchangeRateRon = bank.getExchangeRate(senderAccount.getCurrency(), "RON");
         double amountInRon = command.getAmount() * exchangeRateRon;
+
+        if (senderAccount.isBusinessAccount()) {
+            senderUser = ((BusinessAccount)senderAccount).getOwner();
+        }
         if (senderUser.getServicePlan().getName().equals("silver") && amountInRon >= 300) {
             senderUser.increaseMin300payments();
         }
-
         senderUser.checkForUpgradeToGoldPlan(senderAccount, bank, command.getTimestamp());
     }
 
@@ -369,10 +368,9 @@ public class TransactionService {
 
 
     public void sendMoneyToCommerciant(User senderUser, Account senderAccount, Commerciant receiverCommerciant, CommandInput command) {
-        // withdraw the amount from the sender's account
         double amountSender = command.getAmount();
         double amountSenderWithComission = senderUser.getServicePlan().applyComission(amountSender, senderAccount.getCurrency());
-        // if the money are sent from a business account, the comission is from the owner!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        // if the money are sent from a business account, the comission is from the owner
         if (senderAccount.isBusinessAccount()) {
             amountSenderWithComission = ((BusinessAccount)senderAccount).getOwner().getServicePlan().applyComission(amountSender, senderAccount.getCurrency());
         }
@@ -395,7 +393,6 @@ public class TransactionService {
                     businessAccount.addAssociateToCommerciant(senderUser, receiverCommerciant);
                 }
             }
-
         } else {
             // not everyone has enough funds
             Transaction transaction = new Transaction.TransactionBuilder()
@@ -407,7 +404,6 @@ public class TransactionService {
             senderAccount.addTransaction(transaction);
             return;
         }
-
 
         // add transaction to sender user
         Transaction transactionSender = new Transaction.TransactionBuilder()
@@ -429,17 +425,16 @@ public class TransactionService {
             return;
         }
         double amountInRon = amountSender * exchangeRate;
-
-        //applyCashBack(receiverCommerciant, senderUser, senderAccount, amountSender, amountInRon);
+        applyCashBack(receiverCommerciant, senderUser, senderAccount, amountSender, amountInRon);
 
         // increase the number of min 300 RON payments if the sender has silver plan
+        if (senderAccount.isBusinessAccount()) {
+            senderUser = ((BusinessAccount)senderAccount).getOwner();
+        }
         if (senderUser.getServicePlan().getName().equals("silver") && amountInRon >= 300) {
             senderUser.increaseMin300payments();
         }
         senderUser.checkForUpgradeToGoldPlan(senderAccount, bank, command.getTimestamp());
-
-        applyCashBack(receiverCommerciant, senderUser, senderAccount, amountSender, amountInRon);
-
 
     }
 
@@ -463,6 +458,7 @@ public class TransactionService {
         }
 
         User user = bank.getUserWithEmail(commandInput.getEmail());
+
         if (user == null) {
             throw new Exception("User not found");
         }
@@ -493,8 +489,6 @@ public class TransactionService {
             return;
         }
 
-        // CAND E EROAREA: Card has already been used ????????????????????????????????
-
         double amountInRon = commandInput.getAmount();
         double amountInAccountCurrency = amountInRon * bank.getExchangeRate("RON", account.getCurrency());
         double amountWithComission = user.getServicePlan().applyComission(amountInAccountCurrency, account.getCurrency());
@@ -521,10 +515,26 @@ public class TransactionService {
             return;
         }
 
+        // if the one doing cash withdrawal is an employee of a business account
+        if (account.isBusinessAccount()) {
+            BusinessAccount businessAccount = (BusinessAccount) account;
+            if (businessAccount.isEmployee(user)) {
+                if (amountInRon > businessAccount.getSpendingLimitForEmployees()) {
+                    Transaction transaction = new Transaction.TransactionBuilder()
+                            .setDescription("Spending limit exceeded")
+                            .setTimestamp(commandInput.getTimestamp())
+                            .build();
+
+                    user.addTransaction(transaction);
+                    account.addTransaction(transaction);
+                    return;
+                }
+            }
+        }
+
         // withdraw cash from the account
         account.withdraw(amountWithComission);
         Transaction transaction = new Transaction.TransactionBuilder()
-                //.setDescription("Cash withdrawal of " + amountInAccountCurrency)
                 .setDescription("Cash withdrawal of " + commandInput.getAmount())
                 .setTimestamp(commandInput.getTimestamp())
                 .setAmountCashWithdrawal(amountInRon)
@@ -533,6 +543,4 @@ public class TransactionService {
         user.addTransaction(transaction);
         account.addTransaction(transaction);
     }
-
-
 }

@@ -33,4 +33,24 @@ public class SilverPlan extends ServicePlan {
         }
         return 0.0;
     }
+
+    @Override
+    public boolean isStudentPlan() {
+        return false;
+    }
+
+    @Override
+    public boolean isStandardPlan() {
+        return false;
+    }
+
+    @Override
+    public boolean isSilverPlan() {
+        return true;
+    }
+
+    @Override
+    public boolean isGoldPlan() {
+        return false;
+    }
 }

@@ -18,16 +18,6 @@ public class SplitPaymentEqual extends SplitPayment {
         this.amountSplitted = totalAmount / accounts.size();
     }
 
-//
-//    public boolean isEqualType() {
-//        return true;
-//    }
-//
-//    public boolean isCustomType() {
-//        return false;
-//    }
-
-
     public String getType() {
         return "equal";
     }

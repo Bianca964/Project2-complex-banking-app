@@ -17,4 +17,24 @@ public class GoldPlan extends ServicePlan {
     public double getUpgradeFee(final String upgradedPlanName) {
         return 0.0;
     }
+
+    @Override
+    public boolean isStudentPlan() {
+        return false;
+    }
+
+    @Override
+    public boolean isStandardPlan() {
+        return false;
+    }
+
+    @Override
+    public boolean isSilverPlan() {
+        return false;
+    }
+
+    @Override
+    public boolean isGoldPlan() {
+        return true;
+    }
 }

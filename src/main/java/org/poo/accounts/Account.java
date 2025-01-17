@@ -7,9 +7,9 @@ import lombok.Getter;
 import lombok.Setter;
 import org.poo.cards.Card;
 import org.poo.cards.OneTimeCard;
-import org.poo.serviceplans.ServicePlan;
 import org.poo.transactions.Commerciant;
 import org.poo.transactions.Transaction;
+import org.poo.transactions.TransactionHistory;
 import org.poo.users.User;
 
 import java.util.ArrayList;
@@ -26,22 +26,15 @@ public abstract class Account {
     private int timestamp;
     private String alias;
     private double minBalance;
-    private ArrayList<Transaction> transactions;
+    //private ArrayList<Transaction> transactions;
+    private TransactionHistory transactionHistory;
+    private DiscountManager discountManager;
 
     // total amount spent by the account for the spending threshold commerciants
     private double totalAmountForSpendingThreshold;
 
     // the list of all commerciants to which the account has made transactions
     protected ArrayList<Commerciant> commerciants;
-
-    // for discounts
-    private boolean discountFood;
-    private boolean discountClothes;
-    private boolean discountTech;
-
-    private boolean discountFoodWasUsed;
-    private boolean discountClothesWasUsed;
-    private boolean discountTechWasUsed;
 
 
     public Account(final String currency, final String type, final int timestamp) {
@@ -52,157 +45,52 @@ public abstract class Account {
         this.timestamp = timestamp;
         this.minBalance = 0;
         this.cards = new ArrayList<>();
-        this.transactions = new ArrayList<>();
+        //this.transactions = new ArrayList<>();
         this.totalAmountForSpendingThreshold = 0;
         this.commerciants = new ArrayList<>();
-
-        this.discountFood = false;
-        this.discountClothes = false;
-        this.discountTech = false;
-
-        this.discountFoodWasUsed = false;
-        this.discountClothesWasUsed = false;
-        this.discountTechWasUsed = false;
+        this.discountManager = new DiscountManager();
+        this.transactionHistory = new TransactionHistory();
     }
 
     // DISCOUNTS
 
     // NrOfTransactions
     public boolean hasDiscountAvailable() {
-        return this.discountFood || this.discountClothes || this.discountTech;
+        return this.discountManager.hasDiscountAvailable();
     }
 
     public void applyDiscount(Commerciant commerciant, double amountSpent) {
-        if (commerciant.getType().equals("Food")) {
-            applyFoodDiscount(amountSpent);
-        } else if (commerciant.getType().equals("Clothes")) {
-            applyClothesDiscount(amountSpent);
-        } else if (commerciant.getType().equals("Tech")) {
-            applyTechDiscount(amountSpent);
-        }
+        discountManager.applyDiscount(commerciant, amountSpent, this);
     }
-
-    public void applyFoodDiscount(double amountSpent) {
-        if (this.discountFood && !this.discountFoodWasUsed) {
-            this.deposit(amountSpent * 0.02);
-            this.discountFoodWasUsed = true;
-            this.discountFood = false;
-        }
-    }
-
-    public void applyClothesDiscount(double amountSpent) {
-        if (this.discountClothes && !this.discountClothesWasUsed) {
-            this.deposit(amountSpent * 0.05);
-            this.discountClothesWasUsed = true;
-            this.discountClothes = false;
-        }
-    }
-
-    public void applyTechDiscount(double amountSpent) {
-        if (this.discountTech && !this.discountTechWasUsed) {
-            this.deposit(amountSpent * 0.1);
-            this.discountTechWasUsed = true;
-            this.discountTech = false;
-        }
-    }
-
-
-
 
     public void setDiscountFood() {
-        if (this.discountFoodWasUsed) {
-            return;
-        }
-        this.discountFood = true;
+        discountManager.setDiscountFood();
     }
 
     public void setDiscountClothes() {
-        if (this.discountClothesWasUsed) {
-            return;
-        }
-        this.discountClothes = true;
+        discountManager.setDiscountClothes();
     }
 
     public void setDiscountTech() {
-        if (this.discountTechWasUsed) {
-            return;
-        }
-        this.discountTech = true;
-    }
-
-    public void setDiscountFoodAsUsed() {
-        this.discountFoodWasUsed = true;
-    }
-
-    public void setDiscountClothesAsUsed() {
-        this.discountClothesWasUsed = true;
-    }
-
-    public void setDiscountTechAsUsed() {
-        this.discountTechWasUsed = true;
+        discountManager.setDiscountTech();
     }
 
     public boolean isDiscountFoodUsed() {
-        return this.discountFoodWasUsed;
+        return discountManager.isDiscountFoodUsed();
     }
 
     public boolean isDiscountClothesUsed() {
-        return this.discountClothesWasUsed;
+        return discountManager.isDiscountClothesUsed();
     }
 
     public boolean isDiscountTechUsed() {
-        return this.discountTechWasUsed;
+        return discountManager.isDiscountTechUsed();
     }
-
-
 
     // SPENDING THRESHOLD
     public void applySpendingThresholdDiscount(User sender, double amountSpent) {
-        ServicePlan servicePlan = sender.getServicePlan();
-        // if the sender account is business, the owner's service plan is used for cashback
-        if (this.isBusinessAccount()) {
-            servicePlan = ((BusinessAccount) this).getOwner().getServicePlan();
-        }
-
-        if (totalAmountForSpendingThreshold >= 100 && totalAmountForSpendingThreshold < 300) {
-            if (servicePlan.getName().equals("student") || servicePlan.getName().equals("standard")) {
-                this.deposit(amountSpent * 0.001);
-            }
-            if (servicePlan.getName().equals("silver")) {
-                this.deposit(amountSpent * 0.003);
-            }
-            if (servicePlan.getName().equals("gold")) {
-                this.deposit(amountSpent * 0.005);
-            }
-        }
-
-        if (totalAmountForSpendingThreshold >= 300 && totalAmountForSpendingThreshold < 500) {
-            if (servicePlan.getName().equals("student") || servicePlan.getName().equals("standard")) {
-                this.deposit(amountSpent * 0.002);
-            }
-            if (servicePlan.getName().equals("silver")) {
-                this.deposit(amountSpent * 0.004);
-            }
-            if (servicePlan.getName().equals("gold")) {
-                this.deposit(amountSpent * 0.0055);
-            }
-        }
-
-        if (totalAmountForSpendingThreshold >= 500) {
-            if (servicePlan.getName().equals("student") || servicePlan.getName().equals("standard")) {
-                this.deposit(amountSpent * 0.0025);
-            }
-            if (servicePlan.getName().equals("silver")) {
-                this.deposit(amountSpent * 0.005);
-            }
-            if (servicePlan.getName().equals("gold")) {
-                this.deposit(amountSpent * 0.007);
-            }
-        }
+        discountManager.applySpendingThresholdDiscount(sender, amountSpent, this);
     }
-
-
-
 
     public Commerciant getCommerciant(final Commerciant wantedCommerciant) {
         for (Commerciant c : commerciants) {
@@ -226,10 +114,6 @@ public abstract class Account {
     public void addAmountForSpendingThreshold(final double amount) {
         totalAmountForSpendingThreshold += amount;
     }
-
-
-
-
 
     /**
      * @param cardNumber the card number of the card to be returned from this account
@@ -338,15 +222,11 @@ public abstract class Account {
      * @param transaction the transaction to be added to the account's list of transactions
      */
     public void addTransaction(final Transaction transaction) {
-        int index = 0;
-        for (int i = 0; i < transactions.size(); i++) {
-            if (transactions.get(i).getTimestamp() > transaction.getTimestamp()) {
-                index = i;
-                break;
-            }
-            index = i + 1; // Dacă ajunge la final, se inserează la sfârșit
-        }
-        transactions.add(index, transaction); // Inserăm tranzacția la poziția calculat
+        transactionHistory.addTransaction(transaction);
+    }
+
+    public ArrayList<Transaction> getTransactions() {
+        return transactionHistory.getTransactions();
     }
 
     /**

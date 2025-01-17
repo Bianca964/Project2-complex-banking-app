@@ -20,4 +20,9 @@ public abstract class ServicePlan {
 
     public abstract double applyComission(final double amountSpent, final String currency);
     public abstract double getUpgradeFee(final String upgradedPlanName);
+
+    public abstract boolean isStudentPlan();
+    public abstract boolean isStandardPlan();
+    public abstract boolean isSilverPlan();
+    public abstract boolean isGoldPlan();
 }

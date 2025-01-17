@@ -9,31 +9,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SplitPaymentCustom extends SplitPayment {
-    private ArrayList<Double> amountsForUsers;
+    private final ArrayList<Double> amountsForUsers;
 
     public SplitPaymentCustom(final Bank bank, final CommandInput commandInput) {
         super(bank, commandInput);
 
         this.amountsForUsers = new ArrayList<>();
-        for (double amount : commandInput.getAmountForUsers()) {
-            this.amountsForUsers.add(amount);
-        }
+        this.amountsForUsers.addAll(commandInput.getAmountForUsers());
     }
-
-
-//    public boolean isCustomType() {
-//        return true;
-//    }
-//
-//    public boolean isEqualType() {
-//        return false;
-//    }
 
     public String getType() {
         return "custom";
     }
-
-
 
     public Account everyoneHasEnoughBalance(final List<Account> accounts, final List<Double> amounts,
                                             final String currency) {
@@ -133,8 +120,6 @@ public class SplitPaymentCustom extends SplitPayment {
 
         // sterg splitPaymentul din lista tuturor userilor
         removeSplitPaymentFromAllInvolvedUsers();
-
-
     }
 
 

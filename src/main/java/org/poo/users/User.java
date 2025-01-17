@@ -35,13 +35,13 @@ public class User {
     // for splitPayment
     private ArrayList<SplitPayment> splitPayments;
 
-    private boolean discountFood;
-    private boolean discountClothes;
-    private boolean discountTech;
-
-    private boolean discountFoodWasUsed;
-    private boolean discountClothesWasUsed;
-    private boolean discountTechWasUsed;
+//    private boolean discountFood;
+//    private boolean discountClothes;
+//    private boolean discountTech;
+//
+//    private boolean discountFoodWasUsed;
+//    private boolean discountClothesWasUsed;
+//    private boolean discountTechWasUsed;
 
     private Map<BusinessAccount, Double> amountsDepositedOnBusinessAccounts;
     private Map<BusinessAccount, Double> amountsSpentOnBusinessAccounts;
@@ -70,13 +70,13 @@ public class User {
         this.nrClassicAccounts = 0;
         this.min300payments = 0;
 
-        this.discountFood = false;
-        this.discountClothes = false;
-        this.discountTech = false;
-
-        this.discountFoodWasUsed = false;
-        this.discountClothesWasUsed = false;
-        this.discountTechWasUsed = false;
+//        this.discountFood = false;
+//        this.discountClothes = false;
+//        this.discountTech = false;
+//
+//        this.discountFoodWasUsed = false;
+//        this.discountClothesWasUsed = false;
+//        this.discountTechWasUsed = false;
 
         this.splitPayments = new ArrayList<>();
 
@@ -151,9 +151,6 @@ public class User {
     }
 
     public SplitPayment getFirstSplitTransactionOfType(final String type) {
-
-        // nu verific daca e si acceptata deja de user ul acesta!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
-
         for (SplitPayment splitPayment : splitPayments) {
             if (splitPayment.getType().equals(type)) {
                 return splitPayment;
@@ -170,170 +167,149 @@ public class User {
 
 
 
-    // NrOfTransactions
-    public boolean hasDiscountAvailable() {
-        return this.discountFood || this.discountClothes || this.discountTech;
-    }
+//    // NrOfTransactions
+//    public boolean hasDiscountAvailable() {
+//        return this.discountFood || this.discountClothes || this.discountTech;
+//    }
+//
+//    public void applyDiscount(Account account, Commerciant commerciant, double amountSpent) {
+//        if (commerciant.getType().equals("Food")) {
+//            applyFoodDiscount(account, amountSpent);
+//        } else if (commerciant.getType().equals("Clothes")) {
+//            applyClothesDiscount(account, amountSpent);
+//        } else if (commerciant.getType().equals("Tech")) {
+//            applyTechDiscount(account, amountSpent);
+//        }
+//    }
+//
+//    public void applyFoodDiscount(Account account, double amountSpent) {
+//        if (this.discountFood && !this.discountFoodWasUsed) {
+//            account.deposit(amountSpent * 0.02);
+//            this.discountFoodWasUsed = true;
+//            this.discountFood = false;
+//        }
+//    }
+//
+//    public void applyClothesDiscount(Account account, double amountSpent) {
+//        if (this.discountClothes && !this.discountClothesWasUsed) {
+//            account.deposit(amountSpent * 0.05);
+//            this.discountClothesWasUsed = true;
+//            this.discountClothes = false;
+//        }
+//    }
+//
+//    public void applyTechDiscount(Account account, double amountSpent) {
+//        if (this.discountTech && !this.discountTechWasUsed) {
+//            account.deposit(amountSpent * 0.1);
+//            this.discountTechWasUsed = true;
+//            this.discountTech = false;
+//        }
+//    }
 
-    public void applyDiscount(Account account, Commerciant commerciant, double amountSpent) {
-        if (commerciant.getType().equals("Food")) {
-            applyFoodDiscount(account, amountSpent);
-        } else if (commerciant.getType().equals("Clothes")) {
-            applyClothesDiscount(account, amountSpent);
-        } else if (commerciant.getType().equals("Tech")) {
-            applyTechDiscount(account, amountSpent);
-        }
-    }
 
-    public void applyFoodDiscount(Account account, double amountSpent) {
-        if (this.discountFood && !this.discountFoodWasUsed) {
-            account.deposit(amountSpent * 0.02);
-            this.discountFoodWasUsed = true;
-            this.discountFood = false;
-        }
-    }
 
-    public void applyClothesDiscount(Account account, double amountSpent) {
-        if (this.discountClothes && !this.discountClothesWasUsed) {
-            account.deposit(amountSpent * 0.05);
-            this.discountClothesWasUsed = true;
-            this.discountClothes = false;
-        }
-    }
 
-    public void applyTechDiscount(Account account, double amountSpent) {
-        if (this.discountTech && !this.discountTechWasUsed) {
-            account.deposit(amountSpent * 0.1);
-            this.discountTechWasUsed = true;
-            this.discountTech = false;
-        }
-    }
 
-//    public void resetFoodDiscountForSpendingThresholdAfterUse() {
+
+
+
+//
+//    public void setDiscountFood() {
+//        if (this.discountFoodWasUsed) {
+//            return;
+//        }
 //        this.discountFood = true;
-//        this.discountFoodWasUsed = false;
 //    }
 //
-//    public void resetClothesDiscountForSpendingThresholdAfterUse() {
+//    public void setDiscountClothes() {
+//        if (this.discountClothesWasUsed) {
+//            return;
+//        }
 //        this.discountClothes = true;
-//        this.discountClothesWasUsed = false;
 //    }
 //
-//    public void resetTechDiscountForSpendingThresholdAfterUse() {
+//    public void setDiscountTech() {
+//        if (this.discountTechWasUsed) {
+//            return;
+//        }
 //        this.discountTech = true;
-//        this.discountTechWasUsed = false;
 //    }
 //
-//    public void resetDiscountsForSpendingThresholdAfterUse(Commerciant commerciant) {
-//        resetFoodDiscountForSpendingThresholdAfterUse();
-//        resetClothesDiscountForSpendingThresholdAfterUse();
-//        resetTechDiscountForSpendingThresholdAfterUse();
+//    public void setDiscountFoodAsUsed() {
+//        this.discountFoodWasUsed = true;
+//    }
+//
+//    public void setDiscountClothesAsUsed() {
+//        this.discountClothesWasUsed = true;
+//    }
+//
+//    public void setDiscountTechAsUsed() {
+//        this.discountTechWasUsed = true;
+//    }
+//
+//    public boolean isDiscountFoodUsed() {
+//        return this.discountFoodWasUsed;
+//    }
+//
+//    public boolean isDiscountClothesUsed() {
+//        return this.discountClothesWasUsed;
+//    }
+//
+//    public boolean isDiscountTechUsed() {
+//        return this.discountTechWasUsed;
 //    }
 
 
 
 
 
-
-
-
-
-    public void setDiscountFood() {
-        if (this.discountFoodWasUsed) {
-            return;
-        }
-        this.discountFood = true;
-    }
-
-    public void setDiscountClothes() {
-        if (this.discountClothesWasUsed) {
-            return;
-        }
-        this.discountClothes = true;
-    }
-
-    public void setDiscountTech() {
-        if (this.discountTechWasUsed) {
-            return;
-        }
-        this.discountTech = true;
-    }
-
-    public void setDiscountFoodAsUsed() {
-        this.discountFoodWasUsed = true;
-    }
-
-    public void setDiscountClothesAsUsed() {
-        this.discountClothesWasUsed = true;
-    }
-
-    public void setDiscountTechAsUsed() {
-        this.discountTechWasUsed = true;
-    }
-
-    public boolean isDiscountFoodUsed() {
-        return this.discountFoodWasUsed;
-    }
-
-    public boolean isDiscountClothesUsed() {
-        return this.discountClothesWasUsed;
-    }
-
-    public boolean isDiscountTechUsed() {
-        return this.discountTechWasUsed;
-    }
-
-
-
-
-
-
-    // SPENDING THRESHOLD
-    public void applySpendingThresholdDiscount(Account account, double amountSpent) {
-        ServicePlan servicePlan = this.getServicePlan();
-        // if the sender account is business, the owner's service plan is used for cashback
-        if (account.isBusinessAccount()) {
-            servicePlan = ((BusinessAccount) account).getOwner().getServicePlan();
-        }
-
-        double totalAmountForSpendingThreshold = account.getTotalAmountForSpendingThreshold();
-
-        if (totalAmountForSpendingThreshold >= 100 && totalAmountForSpendingThreshold < 300) {
-            if (servicePlan.getName().equals("student") || servicePlan.getName().equals("standard")) {
-                account.deposit(amountSpent * 0.001);
-            }
-            if (servicePlan.getName().equals("silver")) {
-                account.deposit(amountSpent * 0.003);
-            }
-            if (servicePlan.getName().equals("gold")) {
-                account.deposit(amountSpent * 0.005);
-            }
-        }
-
-        if (totalAmountForSpendingThreshold >= 300 && totalAmountForSpendingThreshold < 500) {
-            if (servicePlan.getName().equals("student") || servicePlan.getName().equals("standard")) {
-                account.deposit(amountSpent * 0.002);
-            }
-            if (servicePlan.getName().equals("silver")) {
-                account.deposit(amountSpent * 0.004);
-            }
-            if (servicePlan.getName().equals("gold")) {
-                account.deposit(amountSpent * 0.0055);
-            }
-        }
-
-        if (totalAmountForSpendingThreshold >= 500) {
-            if (servicePlan.getName().equals("student") || servicePlan.getName().equals("standard")) {
-                account.deposit(amountSpent * 0.0025);
-            }
-            if (servicePlan.getName().equals("silver")) {
-                account.deposit(amountSpent * 0.005);
-            }
-            if (servicePlan.getName().equals("gold")) {
-                account.deposit(amountSpent * 0.007);
-            }
-        }
-    }
+//
+//    // SPENDING THRESHOLD
+//    public void applySpendingThresholdDiscount(Account account, double amountSpent) {
+//        ServicePlan servicePlan = this.getServicePlan();
+//        // if the sender account is business, the owner's service plan is used for cashback
+//        if (account.isBusinessAccount()) {
+//            servicePlan = ((BusinessAccount) account).getOwner().getServicePlan();
+//        }
+//
+//        double totalAmountForSpendingThreshold = account.getTotalAmountForSpendingThreshold();
+//
+//        if (totalAmountForSpendingThreshold >= 100 && totalAmountForSpendingThreshold < 300) {
+//            if (servicePlan.getName().equals("student") || servicePlan.getName().equals("standard")) {
+//                account.deposit(amountSpent * 0.001);
+//            }
+//            if (servicePlan.getName().equals("silver")) {
+//                account.deposit(amountSpent * 0.003);
+//            }
+//            if (servicePlan.getName().equals("gold")) {
+//                account.deposit(amountSpent * 0.005);
+//            }
+//        }
+//
+//        if (totalAmountForSpendingThreshold >= 300 && totalAmountForSpendingThreshold < 500) {
+//            if (servicePlan.getName().equals("student") || servicePlan.getName().equals("standard")) {
+//                account.deposit(amountSpent * 0.002);
+//            }
+//            if (servicePlan.getName().equals("silver")) {
+//                account.deposit(amountSpent * 0.004);
+//            }
+//            if (servicePlan.getName().equals("gold")) {
+//                account.deposit(amountSpent * 0.0055);
+//            }
+//        }
+//
+//        if (totalAmountForSpendingThreshold >= 500) {
+//            if (servicePlan.getName().equals("student") || servicePlan.getName().equals("standard")) {
+//                account.deposit(amountSpent * 0.0025);
+//            }
+//            if (servicePlan.getName().equals("silver")) {
+//                account.deposit(amountSpent * 0.005);
+//            }
+//            if (servicePlan.getName().equals("gold")) {
+//                account.deposit(amountSpent * 0.007);
+//            }
+//        }
+//    }
 
 
 
@@ -385,15 +361,14 @@ public class User {
     public void upgradePlan(Account account, final Bank bank, final int timestamp, final String newPlanType) throws Exception {
 
         // if user has silver plan, make the automatic upgrade to gold plan (without fee)
-//        if (checkForUpgradeToGoldPlan(account, bank, timestamp)) {
-//            return;
-//        }
+        if (checkForUpgradeToGoldPlan(account, bank, timestamp)) {
+            return;
+        }
 
 
 
         String currentPlanName = this.servicePlan.getName();
         if (newPlanType.equals(currentPlanName)) {
-            //throw new Exception("You already have this plan");
             Transaction transaction = new Transaction.TransactionBuilder()
                     .setTimestamp(timestamp)
                     .setDescription("The user already has the " + newPlanType + " plan.")

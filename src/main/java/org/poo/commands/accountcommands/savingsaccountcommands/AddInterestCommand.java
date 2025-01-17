@@ -1,21 +1,21 @@
-package org.poo.commands;
+package org.poo.commands.accountcommands.savingsaccountcommands;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.poo.bank.Bank;
+import org.poo.commands.Command;
 import org.poo.fileio.CommandInput;
-import org.poo.transactions.TransactionService;
 
-public class CashWithdrawalCommand extends Command {
-    public CashWithdrawalCommand(final CommandInput commandInput, final ObjectMapper mapper) {
+public final class AddInterestCommand extends Command {
+
+    public AddInterestCommand(final CommandInput commandInput, final ObjectMapper mapper) {
         super(commandInput, mapper);
     }
 
     @Override
     public void execute(final Bank bank, final ObjectNode objectNode) {
         try {
-            TransactionService transactionService = new TransactionService(bank);
-            transactionService.cashWithdrawal(commandInput, bank);
+            bank.addInterest(commandInput.getAccount(), commandInput.getTimestamp());
         } catch (Exception e) {
             addCommandAndTimestamp(objectNode);
 
@@ -23,6 +23,7 @@ public class CashWithdrawalCommand extends Command {
             outputNode.put("description", e.getMessage());
             outputNode.put("timestamp", commandInput.getTimestamp());
             objectNode.set("output", outputNode);
+
         }
     }
 }

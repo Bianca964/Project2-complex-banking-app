@@ -1,8 +1,9 @@
-package org.poo.commands;
+package org.poo.commands.accountcommands;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.poo.bank.Bank;
+import org.poo.commands.Command;
 import org.poo.users.User;
 import org.poo.fileio.CommandInput;
 

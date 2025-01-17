@@ -33,20 +33,14 @@ public final class SpendingsReport implements ReportGenerator {
         if (account == null) {
             throw new Exception("Account not found");
         }
-
         if (!account.supportsReport()) {
             throw new Exception("This kind of report is not supported for a saving account");
         }
-
-        //BigDecimal roundedBalance = new BigDecimal(account.getBalance()).setScale(2, RoundingMode.HALF_UP);
 
         ObjectNode outputNode = mapper.createObjectNode();
         outputNode.put("IBAN", account.getIban());
         outputNode.put("balance", account.getBalance());
         outputNode.put("currency", account.getCurrency());
-
-        // update the account's balance
-        //account.setBalance(roundedBalance.doubleValue());
 
         // transaction output
         ArrayNode transactionsArray = mapper.createArrayNode();

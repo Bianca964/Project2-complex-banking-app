@@ -94,8 +94,6 @@ public final class Bank extends ExchangeRate {
             return;
         }
 
-
-
         if (savingsAccount == null) {
             throw new Exception("Account not found");
         }
@@ -157,34 +155,19 @@ public final class Bank extends ExchangeRate {
         }
     }
 
-    /**
-     * @param commandInput the object with the whole input
-     * @param mapper the object mapper
-     * @return the object node with the classic report
-     * @throws Exception if the account is not found
-     */
-    public ObjectNode report(final CommandInput commandInput,
-                             final ObjectMapper mapper) throws Exception {
-        ReportGenerator reportGenerator = new ClassicReport(this);
-        return reportGenerator.generateReport(commandInput, mapper);
-    }
 
-    /**
-     * @param commandInput the object with the whole input
-     * @param mapper the object mapper
-     * @return the object node with the spendings report
-     * @throws Exception if the account is not found
-     */
-    public ObjectNode spendingsReport(final CommandInput commandInput,
-                                      final ObjectMapper mapper) throws Exception {
-        ReportGenerator reportGenerator = new SpendingsReport(this);
-        return reportGenerator.generateReport(commandInput, mapper);
-    }
+    public ObjectNode generateReport(final CommandInput commandInput,
+                                     final ObjectMapper mapper,
+                                     final ReportGenerator reportGenerator) throws Exception {
+        if (reportGenerator == null) {
+            return null;
+        }
 
-    public ObjectNode businessReport(final CommandInput commandInput,
-                                      final ObjectMapper mapper) throws Exception {
-        ReportGenerator reportGenerator = new BusinessReport(this);
-        return reportGenerator.generateReport(commandInput, mapper);
+        try {
+            return reportGenerator.generateReport(commandInput, mapper);
+        } catch (Exception e) {
+            throw new Exception(e.getMessage());
+        }
     }
 
 
@@ -294,9 +277,6 @@ public final class Bank extends ExchangeRate {
             if (user == null) {
                 return;
             }
-
-            //BigDecimal roundedInterest = new BigDecimal(interest).setScale(2, RoundingMode.HALF_UP);
-
             Transaction transaction = new Transaction.TransactionBuilder()
                     .setAmountInterest(interest)
                     .setCurrencyAddInterest(account.getCurrency())

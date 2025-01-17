@@ -1,9 +1,12 @@
-package org.poo.commands;
+package org.poo.commands.reportscommands;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.poo.bank.Bank;
+import org.poo.commands.Command;
 import org.poo.fileio.CommandInput;
+import org.poo.reports.BusinessReport;
+import org.poo.reports.ReportGenerator;
 
 public class BusinessReportCommand extends Command {
 
@@ -16,7 +19,8 @@ public class BusinessReportCommand extends Command {
 
         addCommandAndTimestamp(objectNode);
         try {
-            objectNode.set("output", bank.businessReport(commandInput, mapper));
+            ReportGenerator reportGenerator = new BusinessReport(bank);
+            objectNode.set("output", bank.generateReport(commandInput, mapper, reportGenerator));
         } catch (Exception e) {
             ObjectNode outputNode = mapper.createObjectNode();
             if (e.getMessage().equals("This kind of report is not supported for a saving "

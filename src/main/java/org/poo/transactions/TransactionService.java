@@ -3,7 +3,6 @@ package org.poo.transactions;
 import org.poo.accounts.Account;
 import org.poo.accounts.BusinessAccount;
 import org.poo.bank.Bank;
-import org.poo.cards.OneTimeCard;
 import org.poo.serviceplans.ServicePlan;
 import org.poo.users.User;
 import org.poo.cards.Card;
@@ -144,42 +143,20 @@ public class TransactionService {
             }
         }
 
+        card.handlePostPayment(account, user, command, amountInAccountCurrency);
+
+        // CASHBACK
+        double amountInRon = command.getAmount() * bank.getExchangeRate(command.getCurrency(), "RON");
+        applyCashBack(commerciant, user, account, amountInAccountCurrency, amountInRon);
 
         // increase the number of payments of at least 300 RON (useful for the upgradePlan case)
-        double amountInRon = command.getAmount() * bank.getExchangeRate(command.getCurrency(), "RON");
         if (account.isBusinessAccount()) {
             user = ((BusinessAccount) account).getOwner();
         }
         if (user.getServicePlan().getName().equals("silver") && amountInRon >= 300) {
             user.increaseMin300payments();
         }
-
-
-
-        card.handlePostPayment(account, user, command, amountInAccountCurrency);
-
-
-
-        // CASHBACK
-
-        System.out.println("--------------------");
-        System.out.println("payOnline timestamp " + command.getTimestamp() + " paid converted amount " + amountInAccountCurrency + account.getCurrency() + " amount in RON" + amountInRon + " to " + commerciant.getName() + " card " +
-                card.getCardNumber() + " from account " + account.getIban() + " balance before cashback " + account.getBalance() + account.getCurrency() + " plan " + user.getServicePlan().getName() + " the comission is " + (amountWithComission - amountInAccountCurrency));
-
-        applyCashBack(commerciant, user, account, amountInAccountCurrency, amountInRon);
         user.checkForUpgradeToGoldPlan(account, bank, command.getTimestamp());
-
-
-
-
-
-        System.out.println("payOnline timestamp " + command.getTimestamp() + " paid converted amount " + amountInAccountCurrency + account.getCurrency() + " amount in RON" + amountInRon + " to " + commerciant.getName() + " card " +
-                card.getCardNumber() + " from account " + account.getIban() + " balance after cashback " + account.getBalance() + account.getCurrency() + " plan " + user.getServicePlan().getName() + " the comission is " + (amountWithComission - amountInAccountCurrency));
-        System.out.println("--------------------");
-
-
-
-
     }
 
 
@@ -203,35 +180,25 @@ public class TransactionService {
         }
 
         // if there is a discount available, apply it and then add another if possible
-        if (sender.hasDiscountAvailable()) {
-            sender.applyDiscount(senderAccount, commerciant, amountInAccountCurrency);
+        if (senderAccount.hasDiscountAvailable()) {
+            senderAccount.applyDiscount(commerciant, amountInAccountCurrency);
         }
 
         if (commerciant.getCashbackStrategy().equals("nrOfTransactions")) {
-//            // if there is a discount available, apply it and then add another if possible
-//            if (sender.hasDiscountAvailable()) {
-//                sender.applyDiscount(senderAccount, commerciant, amountInAccountCurrency);
-//            }
-
-            if (commerciant.getNrTransactions() == 2 && !sender.isDiscountFoodUsed()) {
-                sender.setDiscountFood();
+            if (commerciant.getNrTransactions() == 2 && !senderAccount.isDiscountFoodUsed()) {
+                senderAccount.setDiscountFood();
             }
-            if (commerciant.getNrTransactions() == 5 && !sender.isDiscountClothesUsed()) {
-                sender.setDiscountClothes();
+            if (commerciant.getNrTransactions() == 5 && !senderAccount.isDiscountClothesUsed()) {
+                senderAccount.setDiscountClothes();
             }
-            if (commerciant.getNrTransactions() == 10 && !sender.isDiscountTechUsed()) {
-                sender.setDiscountTech();
+            if (commerciant.getNrTransactions() == 10 && !senderAccount.isDiscountTechUsed()) {
+                senderAccount.setDiscountTech();
             }
         }
 
         if (commerciant.getCashbackStrategy().equals("spendingThreshold")) {
-//            // if there is a discount available, apply it and then add another if possible
-//            if (sender.hasDiscountAvailable()) {
-//                sender.applyDiscount(senderAccount, commerciant, amountInAccountCurrency);
-//            }
-
             senderAccount.addAmountForSpendingThreshold(amountInRon);
-            sender.applySpendingThresholdDiscount(senderAccount, amountInAccountCurrency);
+            senderAccount.applySpendingThresholdDiscount(sender, amountInAccountCurrency);
         }
     }
 
@@ -446,7 +413,7 @@ public class TransactionService {
 
 
 
-    public void cashWithdrawal(CommandInput commandInput, Bank bank) throws Exception {
+    public void cashWithdrawal(CommandInput commandInput) throws Exception {
         Account account = bank.getAccountWithCard(commandInput.getCardNumber());
         if (account == null) {
             throw new Exception("Card not found");

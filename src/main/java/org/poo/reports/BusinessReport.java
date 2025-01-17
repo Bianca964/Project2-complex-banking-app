@@ -31,10 +31,6 @@ public class BusinessReport implements ReportGenerator {
             throw new Exception("Account not found");
         }
 
-//        if (!account.supportsReport()) {
-//            throw new Exception("This kind of report is not supported for a saving account");
-//        }
-
         BusinessAccount businessAccount;
         if (account.isBusinessAccount()) {
             businessAccount = (BusinessAccount) account;

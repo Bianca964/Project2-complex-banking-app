@@ -8,7 +8,6 @@ import org.poo.users.User;
 import org.poo.fileio.CommandInput;
 
 import java.util.ArrayList;
-import java.util.List;
 
 @Getter
 @Setter
@@ -73,7 +72,4 @@ public abstract class SplitPayment {
     public abstract String getType();
     public abstract void execute();
     public abstract Transaction createTransactionForReject();
-
-
-
 }

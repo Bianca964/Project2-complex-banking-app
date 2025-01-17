@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.poo.cards.Card;
 import org.poo.cards.OneTimeCard;
+import org.poo.serviceplans.ServicePlan;
 import org.poo.transactions.Commerciant;
 import org.poo.transactions.Transaction;
 import org.poo.users.User;
@@ -33,6 +34,15 @@ public abstract class Account {
     // the list of all commerciants to which the account has made transactions
     protected ArrayList<Commerciant> commerciants;
 
+    // for discounts
+    private boolean discountFood;
+    private boolean discountClothes;
+    private boolean discountTech;
+
+    private boolean discountFoodWasUsed;
+    private boolean discountClothesWasUsed;
+    private boolean discountTechWasUsed;
+
 
     public Account(final String currency, final String type, final int timestamp) {
         this.iban = generateIBAN();
@@ -45,7 +55,173 @@ public abstract class Account {
         this.transactions = new ArrayList<>();
         this.totalAmountForSpendingThreshold = 0;
         this.commerciants = new ArrayList<>();
+
+        this.discountFood = false;
+        this.discountClothes = false;
+        this.discountTech = false;
+
+        this.discountFoodWasUsed = false;
+        this.discountClothesWasUsed = false;
+        this.discountTechWasUsed = false;
     }
+
+
+
+
+
+
+
+    // DISOCUNTS
+
+    // NrOfTransactions
+    public boolean hasDiscountAvailable() {
+        return this.discountFood || this.discountClothes || this.discountTech;
+    }
+
+    public void applyDiscount(Commerciant commerciant, double amountSpent) {
+        if (commerciant.getType().equals("Food")) {
+            applyFoodDiscount(amountSpent);
+        } else if (commerciant.getType().equals("Clothes")) {
+            applyClothesDiscount(amountSpent);
+        } else if (commerciant.getType().equals("Tech")) {
+            applyTechDiscount(amountSpent);
+        }
+    }
+
+    public void applyFoodDiscount(double amountSpent) {
+        if (this.discountFood && !this.discountFoodWasUsed) {
+            this.deposit(amountSpent * 0.02);
+            this.discountFoodWasUsed = true;
+            this.discountFood = false;
+        }
+    }
+
+    public void applyClothesDiscount(double amountSpent) {
+        if (this.discountClothes && !this.discountClothesWasUsed) {
+            this.deposit(amountSpent * 0.05);
+            this.discountClothesWasUsed = true;
+            this.discountClothes = false;
+        }
+    }
+
+    public void applyTechDiscount(double amountSpent) {
+        if (this.discountTech && !this.discountTechWasUsed) {
+            this.deposit(amountSpent * 0.1);
+            this.discountTechWasUsed = true;
+            this.discountTech = false;
+        }
+    }
+
+
+
+
+    public void setDiscountFood() {
+        if (this.discountFoodWasUsed) {
+            return;
+        }
+        this.discountFood = true;
+    }
+
+    public void setDiscountClothes() {
+        if (this.discountClothesWasUsed) {
+            return;
+        }
+        this.discountClothes = true;
+    }
+
+    public void setDiscountTech() {
+        if (this.discountTechWasUsed) {
+            return;
+        }
+        this.discountTech = true;
+    }
+
+    public void setDiscountFoodAsUsed() {
+        this.discountFoodWasUsed = true;
+    }
+
+    public void setDiscountClothesAsUsed() {
+        this.discountClothesWasUsed = true;
+    }
+
+    public void setDiscountTechAsUsed() {
+        this.discountTechWasUsed = true;
+    }
+
+    public boolean isDiscountFoodUsed() {
+        return this.discountFoodWasUsed;
+    }
+
+    public boolean isDiscountClothesUsed() {
+        return this.discountClothesWasUsed;
+    }
+
+    public boolean isDiscountTechUsed() {
+        return this.discountTechWasUsed;
+    }
+
+
+
+    // SPENDING THRESHOLD
+    public void applySpendingThresholdDiscount(User sender, double amountSpent) {
+        ServicePlan servicePlan = sender.getServicePlan();
+        // if the sender account is business, the owner's service plan is used for cashback
+        if (this.isBusinessAccount()) {
+            servicePlan = ((BusinessAccount) this).getOwner().getServicePlan();
+        }
+
+        if (totalAmountForSpendingThreshold >= 100 && totalAmountForSpendingThreshold < 300) {
+            if (servicePlan.getName().equals("student") || servicePlan.getName().equals("standard")) {
+                this.deposit(amountSpent * 0.001);
+            }
+            if (servicePlan.getName().equals("silver")) {
+                this.deposit(amountSpent * 0.003);
+            }
+            if (servicePlan.getName().equals("gold")) {
+                this.deposit(amountSpent * 0.005);
+            }
+        }
+
+        if (totalAmountForSpendingThreshold >= 300 && totalAmountForSpendingThreshold < 500) {
+            if (servicePlan.getName().equals("student") || servicePlan.getName().equals("standard")) {
+                this.deposit(amountSpent * 0.002);
+            }
+            if (servicePlan.getName().equals("silver")) {
+                this.deposit(amountSpent * 0.004);
+            }
+            if (servicePlan.getName().equals("gold")) {
+                this.deposit(amountSpent * 0.0055);
+            }
+        }
+
+        if (totalAmountForSpendingThreshold >= 500) {
+            if (servicePlan.getName().equals("student") || servicePlan.getName().equals("standard")) {
+                this.deposit(amountSpent * 0.0025);
+            }
+            if (servicePlan.getName().equals("silver")) {
+                this.deposit(amountSpent * 0.005);
+            }
+            if (servicePlan.getName().equals("gold")) {
+                this.deposit(amountSpent * 0.007);
+            }
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

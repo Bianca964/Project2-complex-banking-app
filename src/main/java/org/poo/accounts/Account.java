@@ -65,13 +65,7 @@ public abstract class Account {
         this.discountTechWasUsed = false;
     }
 
-
-
-
-
-
-
-    // DISOCUNTS
+    // DISCOUNTS
 
     // NrOfTransactions
     public boolean hasDiscountAvailable() {
@@ -210,21 +204,6 @@ public abstract class Account {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     public Commerciant getCommerciant(final Commerciant wantedCommerciant) {
         for (Commerciant c : commerciants) {
             if (c.getName().equals(wantedCommerciant.getName())) {
@@ -244,12 +223,10 @@ public abstract class Account {
         }
     }
 
-
-
-
     public void addAmountForSpendingThreshold(final double amount) {
         totalAmountForSpendingThreshold += amount;
     }
+
 
 
 
@@ -340,28 +317,13 @@ public abstract class Account {
         balance += amount;
     }
 
-
-
-
-
-
-
     public void addFunds(final double amount, final User user) {
         this.deposit(amount);
     }
 
-
     public abstract boolean isBusinessAccount();
     public abstract boolean isSavingAccount();
     public abstract boolean isClassicAccount();
-
-
-
-
-
-
-
-
 
     /**
      * Decreases the balance of the account
@@ -393,34 +355,17 @@ public abstract class Account {
      */
     public abstract boolean supportsReport();
 
-//    /**
-//     * Abstract method that checks if the account has interest
-//     * @return true if the account has interest and false otherwise
-//     */
-//    public abstract boolean hasInterest();
-
     /**
      * Transforms the account to an ObjectNode
      * @param objectMapper the object mapper used to create the ObjectNode
      * @return ObjectNode representing the account
      */
     public ObjectNode transformToObjectNode(final ObjectMapper objectMapper) {
-        // Round to 2 decimal places
-        //BigDecimal roundedBalance = new BigDecimal(balance).setScale(2, RoundingMode.HALF_UP);
-
         ObjectNode accountNode = objectMapper.createObjectNode();
         accountNode.put("IBAN", iban);
         accountNode.put("balance", balance);
         accountNode.put("currency", currency);
         accountNode.put("type", type);
-
-
-
-
-        // update the account's balance
-        //this.setBalance(roundedBalance.doubleValue());
-
-
 
         ArrayNode cardsArray = objectMapper.createArrayNode();
         if (cards != null && !cards.isEmpty()) {

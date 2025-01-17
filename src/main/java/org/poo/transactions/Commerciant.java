@@ -8,8 +8,6 @@ import lombok.Setter;
 import org.poo.fileio.CommerciantInput;
 import org.poo.users.User;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Comparator;
 
@@ -56,6 +54,15 @@ public class Commerciant {
         this.nrTransactions = 0;
     }
 
+//
+//    public CashbackStrategy getCashbackStrategyInstance() {
+//        if (cashbackStrategy.equals("nrOfTransactions")) {
+//            return new NrOfTransactionsCashback();
+//        } else if (cashbackStrategy.equals("spendingThreshold")) {
+//            return new SpendingThresholdCashback();
+//        }
+//        return null;
+//    }
 
 
 

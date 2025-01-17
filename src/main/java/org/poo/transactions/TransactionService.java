@@ -3,6 +3,7 @@ package org.poo.transactions;
 import org.poo.accounts.Account;
 import org.poo.accounts.BusinessAccount;
 import org.poo.bank.Bank;
+import org.poo.cashback.CashbackStrategyContext;
 import org.poo.serviceplans.ServicePlan;
 import org.poo.users.User;
 import org.poo.cards.Card;
@@ -11,9 +12,11 @@ import org.poo.fileio.CommandInput;
 
 public class TransactionService {
     private final Bank bank;
+    private CashbackStrategyContext cashbackStrategyContext;
 
     public TransactionService(final Bank bank) {
         this.bank = bank;
+        this.cashbackStrategyContext = new CashbackStrategyContext();
     }
 
     /**
@@ -169,37 +172,8 @@ public class TransactionService {
      * @param amountInRon the amount of the payment in RON
      */
     public void applyCashBack(Commerciant commerciant, User sender, Account senderAccount, double amountInAccountCurrency, double amountInRon) {
-
-        // if account already has the commerciant, increment the number of transactions
-        if (senderAccount.getCommerciant(commerciant) != null) {
-            senderAccount.incrementNrOfTrnscForCommerciant(commerciant);
-        } else {
-            // if account doesn't have the commerciant, add it to account
-            senderAccount.addCommerciant(commerciant);
-            senderAccount.getCommerciant(commerciant).setNrTransactions(1);
-        }
-
-        // if there is a discount available, apply it and then add another if possible
-        if (senderAccount.hasDiscountAvailable()) {
-            senderAccount.applyDiscount(commerciant, amountInAccountCurrency);
-        }
-
-        if (commerciant.getCashbackStrategy().equals("nrOfTransactions")) {
-            if (commerciant.getNrTransactions() == 2 && !senderAccount.isDiscountFoodUsed()) {
-                senderAccount.setDiscountFood();
-            }
-            if (commerciant.getNrTransactions() == 5 && !senderAccount.isDiscountClothesUsed()) {
-                senderAccount.setDiscountClothes();
-            }
-            if (commerciant.getNrTransactions() == 10 && !senderAccount.isDiscountTechUsed()) {
-                senderAccount.setDiscountTech();
-            }
-        }
-
-        if (commerciant.getCashbackStrategy().equals("spendingThreshold")) {
-            senderAccount.addAmountForSpendingThreshold(amountInRon);
-            senderAccount.applySpendingThresholdDiscount(sender, amountInAccountCurrency);
-        }
+        cashbackStrategyContext.setCashbackStrategy(commerciant);
+        cashbackStrategyContext.applyCashback(commerciant, sender, senderAccount, amountInAccountCurrency, amountInRon);
     }
 
 

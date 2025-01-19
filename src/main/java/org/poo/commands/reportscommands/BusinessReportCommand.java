@@ -5,8 +5,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.poo.bank.Bank;
 import org.poo.commands.Command;
 import org.poo.fileio.CommandInput;
-import org.poo.reports.BusinessReport;
 import org.poo.reports.ReportGenerator;
+import org.poo.reports.businessreport.BusinessReportFactory;
 
 public final class BusinessReportCommand extends Command {
 
@@ -17,8 +17,10 @@ public final class BusinessReportCommand extends Command {
     @Override
     public void execute(final Bank bank, final ObjectNode objectNode) {
         addCommandAndTimestamp(objectNode);
+
         try {
-            ReportGenerator reportGenerator = new BusinessReport(bank);
+            ReportGenerator reportGenerator =
+                    BusinessReportFactory.createBusinessReport(commandInput, bank);
             objectNode.set("output", bank.generateReport(commandInput, mapper, reportGenerator));
         } catch (Exception e) {
             ObjectNode outputNode = mapper.createObjectNode();

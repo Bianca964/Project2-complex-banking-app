@@ -21,7 +21,8 @@ public final class InitBank {
     public InitBank(final ObjectInput input) {
         this.mapper = new ObjectMapper();
         this.outputArray = this.mapper.createArrayNode();
-        this.bank = Bank.getInstance(input.getUsers(), input.getExchangeRates(), input.getCommerciants());
+        this.bank = Bank.getInstance(input.getUsers(), input.getExchangeRates(),
+                                     input.getCommerciants());
         this.commandFactory = new CommandFactory(mapper);
     }
 

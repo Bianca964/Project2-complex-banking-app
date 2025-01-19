@@ -9,9 +9,10 @@ import org.poo.commands.Command;
 import org.poo.fileio.CommandInput;
 import org.poo.users.User;
 
-public class ChangeSpendingLimitCommand extends Command {
+public final class ChangeSpendingLimitCommand extends Command {
 
-    public ChangeSpendingLimitCommand(final CommandInput commandInput, final ObjectMapper mapper) {
+    public ChangeSpendingLimitCommand(final CommandInput commandInput,
+                                      final ObjectMapper mapper) {
         super(commandInput, mapper);
     }
 
@@ -41,11 +42,10 @@ public class ChangeSpendingLimitCommand extends Command {
             return;
         }
 
-
-
         if (account.isBusinessAccount() && userTryingToChangeIt != null) {
             try {
-                ((BusinessAccount) account).setSpendingLimitForEmployees(newSpeedingLimit, userTryingToChangeIt);
+                BusinessAccount businessAccount = (BusinessAccount) account;
+                businessAccount.setSpendingLimit(newSpeedingLimit, userTryingToChangeIt);
             } catch (Exception e) {
                 addCommandAndTimestamp(objectNode);
 

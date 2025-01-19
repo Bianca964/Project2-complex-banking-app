@@ -1,6 +1,6 @@
 package org.poo.accounts;
 
-public class ClassicAccount extends Account {
+public final class ClassicAccount extends Account {
     public ClassicAccount(final String currency, final String type, final int timestamp) {
         super(currency, type, timestamp);
     }

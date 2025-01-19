@@ -2,23 +2,38 @@ package org.poo.serviceplans;
 
 import org.poo.bank.Bank;
 
-public class StandardPlan extends ServicePlan {
-    public StandardPlan(Bank bank) {
-        super("standard", 0.002, bank);
-        upgradeLevel = 1;
+public final class StandardPlan extends ServicePlan {
+    private static final double COMMISSION_STANDARD = 0.002;
+    private static final double UPGRADE_FEE_TO_SILVER = 100.0;
+    private static final double UPGRADE_FEE_TO_GOLD = 350.0;
+
+    public StandardPlan(final Bank bank) {
+        super("standard", COMMISSION_STANDARD, bank);
+        upgradeLevel = UPGRADE_LEVEL_STUDENT_STANDARD;
     }
 
+    /**
+     * Apply commission according to standard plan
+     * @param amountSpent amount spent by the user
+     * @param currency currency of the amount spent
+     * @return the amount spent with the commission applied for this plan
+     */
     @Override
-    public double applyComission(final double amountSpent, final String currency) {
-        return amountSpent * (1.0 + getComission());
+    public double applyCommission(final double amountSpent, final String currency) {
+        return amountSpent * (1.0 + getCommission());
     }
 
+    /**
+     * Get the upgrade fee for the standard plan
+     * @param upgradedPlanName the name of the plan to upgrade to
+     * @return the upgrade fee in RON
+     */
     @Override
     public double getUpgradeFee(final String upgradedPlanName) {
         if (upgradedPlanName.equals("silver")) {
-            return 100.0;
+            return UPGRADE_FEE_TO_SILVER;
         } else if (upgradedPlanName.equals("gold")) {
-            return 350.0;
+            return UPGRADE_FEE_TO_GOLD;
         } else {
             return 0.0;
         }

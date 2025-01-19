@@ -1,14 +1,15 @@
-package org.poo.transactions;
+package org.poo.transactions.splitpayments;
 
 import org.poo.accounts.Account;
 import org.poo.bank.Bank;
+import org.poo.transactions.Transaction;
 import org.poo.users.User;
 import org.poo.fileio.CommandInput;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class SplitPaymentCustom extends SplitPayment {
+public final class SplitPaymentCustom extends SplitPayment {
     private final ArrayList<Double> amountsForUsers;
 
     public SplitPaymentCustom(final Bank bank, final CommandInput commandInput) {
@@ -18,12 +19,20 @@ public class SplitPaymentCustom extends SplitPayment {
         this.amountsForUsers.addAll(commandInput.getAmountForUsers());
     }
 
+    @Override
     public String getType() {
         return "custom";
     }
 
-    public Account everyoneHasEnoughBalance(final List<Account> accounts, final List<Double> amounts,
-                                            final String currency) {
+    /**
+     * Checks if everyone has enough balance for a split payment
+     * @param accounts list of accounts involved in the split payment
+     * @param amounts list of amounts each user has to pay in the given currency
+     * @param currency the currency in which the amount is given
+     * @return the first account that has insufficient funds or null if everyone has enough money
+     */
+    public Account everyoneHasEnoughBalance(final List<Account> accounts,
+                                            final List<Double> amounts, final String currency) {
         for (int i = 0; i < accounts.size(); i++) {
             Account account = accounts.get(i);
             double amount = amounts.get(i);
@@ -42,12 +51,8 @@ public class SplitPaymentCustom extends SplitPayment {
         return null;
     }
 
-
-
-
     @Override
     public void execute() {
-
         List<String> accountsIban = new ArrayList<>();
         for (Account account : accounts) {
             accountsIban.add(account.getIban());
@@ -76,9 +81,7 @@ public class SplitPaymentCustom extends SplitPayment {
                 user.addTransaction(transaction);
                 account.addTransaction(transaction);
 
-                // sterg splitPaymentul din lista tuturor userilor
                 removeSplitPaymentFromAllInvolvedUsers();
-
             }
             return;
         }
@@ -94,7 +97,6 @@ public class SplitPaymentCustom extends SplitPayment {
                         account.getCurrency());
                 amountInAccountCurrency = amountToPay * exchangeRate;
             } catch (Exception e) {
-                // if no exchange rate is found, don't do the transaction
                 return;
             }
 
@@ -118,14 +120,10 @@ public class SplitPaymentCustom extends SplitPayment {
             account.addTransaction(transaction);
         }
 
-        // sterg splitPaymentul din lista tuturor userilor
         removeSplitPaymentFromAllInvolvedUsers();
     }
 
-
-
-
-
+    @Override
     public Transaction createTransactionForReject() {
         List<String> involvedAccounts = new ArrayList<>();
         for (Account account : accounts) {
@@ -137,7 +135,7 @@ public class SplitPaymentCustom extends SplitPayment {
             amounts.add(amount);
         }
 
-        Transaction transaction = new Transaction.TransactionBuilder()
+        return new Transaction.TransactionBuilder()
                 .setTimestamp(timestamp)
                 .setError("One user rejected the payment.")
                 .setDescription("Split payment of " + String.format("%.2f", totalAmount)
@@ -147,8 +145,6 @@ public class SplitPaymentCustom extends SplitPayment {
                 .setInvolvedAccounts(involvedAccounts)
                 .setAmountsSplitTransaction(amounts)
                 .build();
-
-        return transaction;
     }
 
 

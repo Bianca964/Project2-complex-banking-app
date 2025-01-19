@@ -8,7 +8,7 @@ import org.poo.fileio.CommandInput;
 import org.poo.reports.BusinessReport;
 import org.poo.reports.ReportGenerator;
 
-public class BusinessReportCommand extends Command {
+public final class BusinessReportCommand extends Command {
 
     public BusinessReportCommand(final CommandInput commandInput, final ObjectMapper mapper) {
         super(commandInput, mapper);
@@ -16,7 +16,6 @@ public class BusinessReportCommand extends Command {
 
     @Override
     public void execute(final Bank bank, final ObjectNode objectNode) {
-
         addCommandAndTimestamp(objectNode);
         try {
             ReportGenerator reportGenerator = new BusinessReport(bank);

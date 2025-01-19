@@ -17,7 +17,7 @@ public final class CreateOneTimeCardCommand extends Command {
     public void execute(final Bank bank, final ObjectNode objectNode) {
         User user = bank.getUserWithEmail(commandInput.getEmail());
         if (user != null) {
-            user.createOneTimeCard(commandInput.getAccount(), commandInput.getTimestamp());
+            user.createOneTimeCard(commandInput.getAccount(), commandInput.getTimestamp(), bank);
         }
     }
 }

@@ -8,7 +8,7 @@ import org.poo.commands.Command;
 import org.poo.users.User;
 import org.poo.fileio.CommandInput;
 
-public class UpgradePlanCommand extends Command {
+public final class UpgradePlanCommand extends Command {
 
     public UpgradePlanCommand(final CommandInput commandInput, final ObjectMapper mapper) {
         super(commandInput, mapper);
@@ -16,7 +16,6 @@ public class UpgradePlanCommand extends Command {
 
     @Override
     public void execute(final Bank bank, final ObjectNode objectNode) {
-
         Account account = bank.getAccountWithIBAN(commandInput.getAccount());
         if (account == null) {
             addCommandAndTimestamp(objectNode);
@@ -33,13 +32,13 @@ public class UpgradePlanCommand extends Command {
         }
 
         try {
-            user.upgradePlan(account, bank, commandInput.getTimestamp(), commandInput.getNewPlanType());
+            user.upgradePlan(account, bank, commandInput.getTimestamp(),
+                             commandInput.getNewPlanType());
         } catch (Exception e) {
             addCommandAndTimestamp(objectNode);
             ObjectNode outputNode = mapper.createObjectNode();
             outputNode.put("error", e.getMessage());
             objectNode.set("output", outputNode);
         }
-
     }
 }

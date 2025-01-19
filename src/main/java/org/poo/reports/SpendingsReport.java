@@ -6,11 +6,9 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.poo.accounts.Account;
 import org.poo.bank.Bank;
 import org.poo.fileio.CommandInput;
-import org.poo.transactions.Commerciant;
+import org.poo.commerciants.Commerciant;
 import org.poo.transactions.Transaction;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.TreeMap;
 
 public final class SpendingsReport implements ReportGenerator {

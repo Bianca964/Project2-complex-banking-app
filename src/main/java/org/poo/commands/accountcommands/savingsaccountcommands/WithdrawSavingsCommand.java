@@ -7,25 +7,18 @@ import org.poo.commands.Command;
 import org.poo.users.User;
 import org.poo.fileio.CommandInput;
 
-public class WithdrawSavingsCommand extends Command {
+public final class WithdrawSavingsCommand extends Command {
 
-    public WithdrawSavingsCommand(CommandInput commandInput, ObjectMapper mapper) {
+    public WithdrawSavingsCommand(final CommandInput commandInput, final ObjectMapper mapper) {
         super(commandInput, mapper);
     }
 
     @Override
-    public void execute(Bank bank, ObjectNode objectNode) {
+    public void execute(final Bank bank, final ObjectNode objectNode) {
         User user = bank.getUserWithAccount(commandInput.getAccount());
 
         if (user != null) {
-            try {
-                bank.withdrawSavings(commandInput);
-            } catch (Exception e) {
-//                addCommandAndTimestamp(objectNode);
-//                ObjectNode outputNode = mapper.createObjectNode();
-//                outputNode.put("error", e.getMessage());
-//                objectNode.set("output", outputNode);
-            }
+            bank.withdrawSavings(commandInput);
         }
     }
 }

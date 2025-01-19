@@ -6,16 +6,16 @@ import org.poo.bank.Bank;
 import org.poo.commands.Command;
 import org.poo.users.User;
 import org.poo.fileio.CommandInput;
-import org.poo.transactions.SplitPayment;
+import org.poo.transactions.splitpayments.SplitPayment;
 
-public class AcceptSplitPaymentCommand extends Command {
-    public AcceptSplitPaymentCommand(CommandInput commandInput, ObjectMapper mapper) {
+public final class AcceptSplitPaymentCommand extends Command {
+
+    public AcceptSplitPaymentCommand(final CommandInput commandInput, final ObjectMapper mapper) {
         super(commandInput, mapper);
     }
 
     @Override
-    public void execute(Bank bank, ObjectNode objectNode) {
-
+    public void execute(final Bank bank, final ObjectNode objectNode) {
         // after every accept, verify if the transaction can be executed (has all accepts)
         User user = bank.getUserWithEmail(commandInput.getEmail());
         if (user == null) {

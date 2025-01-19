@@ -6,9 +6,9 @@ import org.poo.bank.Bank;
 import org.poo.commands.Command;
 import org.poo.users.User;
 import org.poo.fileio.CommandInput;
-import org.poo.transactions.SplitPaymentEqual;
-import org.poo.transactions.SplitPayment;
-import org.poo.transactions.SplitPaymentCustom;
+import org.poo.transactions.splitpayments.SplitPaymentEqual;
+import org.poo.transactions.splitpayments.SplitPayment;
+import org.poo.transactions.splitpayments.SplitPaymentCustom;
 
 import java.util.ArrayList;
 
@@ -20,7 +20,6 @@ public final class SplitPaymentCommand extends Command {
 
     @Override
     public void execute(final Bank bank, final ObjectNode objectNode) {
-
         ArrayList<User> users = new ArrayList<>();
         for (String accountIBAN : commandInput.getAccounts()) {
             User user = bank.getUserWithAccount(accountIBAN);
@@ -29,22 +28,16 @@ public final class SplitPaymentCommand extends Command {
             }
         }
 
-        SplitPayment splitPayment;
+        SplitPayment splitPayment = null;
         if (commandInput.getSplitPaymentType().equals("equal")) {
             splitPayment = new SplitPaymentEqual(bank, commandInput);
-
-            // tb sa adaug splitPayment la Useri
-            for (User user : users) {
-                user.addSplitPayment(splitPayment);
-            }
-
         } else if (commandInput.getSplitPaymentType().equals("custom")) {
             splitPayment = new SplitPaymentCustom(bank, commandInput);
+        }
 
-            // tb sa adaug splitPayment la USER
-            for (User user : users) {
-                user.addSplitPayment(splitPayment);
-            }
+        // add splitPayment to each user involved in it
+        for (User user : users) {
+            user.addSplitPayment(splitPayment);
         }
     }
 }

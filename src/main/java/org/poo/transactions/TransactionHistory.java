@@ -27,9 +27,9 @@ public class TransactionHistory {
                 index = i;
                 break;
             }
-            index = i + 1; // Dacă ajunge la final, se inserează la sfârșit
+            index = i + 1;
         }
-        transactions.add(index, transaction); // Inserăm tranzacția la poziția calculat
+        transactions.add(index, transaction);
     }
 
 

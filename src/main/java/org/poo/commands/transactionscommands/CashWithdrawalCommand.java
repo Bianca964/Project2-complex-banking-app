@@ -7,7 +7,8 @@ import org.poo.commands.Command;
 import org.poo.fileio.CommandInput;
 import org.poo.transactions.TransactionService;
 
-public class CashWithdrawalCommand extends Command {
+public final class CashWithdrawalCommand extends Command {
+
     public CashWithdrawalCommand(final CommandInput commandInput, final ObjectMapper mapper) {
         super(commandInput, mapper);
     }

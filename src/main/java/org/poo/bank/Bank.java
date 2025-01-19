@@ -11,16 +11,11 @@ import org.poo.fileio.CommandInput;
 import org.poo.fileio.CommerciantInput;
 import org.poo.fileio.ExchangeInput;
 import org.poo.fileio.UserInput;
-import org.poo.reports.BusinessReport;
-import org.poo.reports.ClassicReport;
 import org.poo.reports.ReportGenerator;
-import org.poo.reports.SpendingsReport;
-import org.poo.transactions.Commerciant;
+import org.poo.commerciants.Commerciant;
 import org.poo.transactions.Transaction;
 import org.poo.users.User;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.ArrayList;
 
 import static org.poo.utils.Utils.MIN_BALANCE_DIFFERENCE;
@@ -28,10 +23,12 @@ import static org.poo.utils.Utils.MIN_BALANCE_DIFFERENCE;
 @Getter
 public final class Bank extends ExchangeRate {
     private final ArrayList<User> users;
-    private ArrayList<Commerciant> commerciants;
+    private final ArrayList<Commerciant> commerciants;
     private static Bank bank;
+    private static final double MIN_AGE_REQUIRED = 21;
 
-    private Bank(final UserInput[] users, final ExchangeInput[] exchangeRates, final CommerciantInput[] commerciants) {
+    private Bank(final UserInput[] users, final ExchangeInput[] exchangeRates,
+                 final CommerciantInput[] commerciants) {
         super(exchangeRates);
         this.users = new ArrayList<>();
         for (UserInput user : users) {
@@ -50,7 +47,8 @@ public final class Bank extends ExchangeRate {
      * @param exchangeRates the exchange rates of the bank
      * @return the bank instance
      */
-    public static Bank getInstance(final UserInput[] users, final ExchangeInput[] exchangeRates, final CommerciantInput[] commerciants) {
+    public static Bank getInstance(final UserInput[] users, final ExchangeInput[] exchangeRates,
+                                   final CommerciantInput[] commerciants) {
         if (bank == null) {
             bank = new Bank(users, exchangeRates, commerciants);
         }
@@ -64,27 +62,54 @@ public final class Bank extends ExchangeRate {
         bank = null;
     }
 
+    /**
+     * Deposit money in the first classic account of the user with the given currency
+     * @param commandInput the command input containing the deposit details
+     * @param user the user that deposit the money and has the classic account
+     * @param savingsAccount the savings account from which the money is withdrawn
+     */
+    public void depositAmountInClassicAccount(final CommandInput commandInput, final User user,
+                                              final Account savingsAccount) {
+        String currency = commandInput.getCurrency();
+        for (Account classicAccount : user.getAccounts()) {
+            if (classicAccount.isClassicAccount()
+                    && classicAccount.getCurrency().equals(currency)) {
+                classicAccount.deposit(commandInput.getAmount());
 
+                // create transaction
+                Transaction transaction = new Transaction.TransactionBuilder()
+                        .setTimestamp(commandInput.getTimestamp())
+                        .setDescription("Savings withdrawal")
+                        .setAmountWithdrawn(commandInput.getAmount())
+                        .setClassicAccountIban(classicAccount.getIban())
+                        .setSavingsAccountIban(savingsAccount.getIban())
+                        .build();
 
-    public Commerciant getCommerciantWithName(final String name) {
-        for (Commerciant commerciant : commerciants) {
-            if (commerciant.getName().equals(name)) {
-                return commerciant;
+                // add to the classic account
+                user.addTransaction(transaction);
+                classicAccount.addTransaction(transaction);
+
+                // add to the savings account
+                user.addTransaction(transaction);
+                savingsAccount.addTransaction(transaction);
+                return;
             }
         }
-        return null;
     }
 
-    public void withdrawSavings(CommandInput commandInput) throws Exception {
-
+    /**
+     * Withdraw money from a savings account and deposit it in the classic account of the user
+     * @param commandInput the command input containing the withdrawal details
+     */
+    public void withdrawSavings(final CommandInput commandInput) {
         User user = this.getUserWithAccount(commandInput.getAccount());
         Account savingsAccount = this.getAccountWithIBAN(commandInput.getAccount());
 
-        if (user == null) {
+        if (user == null || savingsAccount == null) {
             return;
         }
 
-        if (user.getAge() < 21) {
+        if (user.getAge() < MIN_AGE_REQUIRED) {
             Transaction transaction = new Transaction.TransactionBuilder()
                     .setTimestamp(commandInput.getTimestamp())
                     .setDescription("You don't have the minimum age required.")
@@ -92,10 +117,6 @@ public final class Bank extends ExchangeRate {
 
             user.addTransaction(transaction);
             return;
-        }
-
-        if (savingsAccount == null) {
-            throw new Exception("Account not found");
         }
 
         if (!user.hasClassicAccount()) {
@@ -119,43 +140,32 @@ public final class Bank extends ExchangeRate {
         }
 
         // extract amount from savings account
-        double exchangeRate = this.getExchangeRate(commandInput.getCurrency(), savingsAccount.getCurrency());
+        double exchangeRate;
+        try {
+            exchangeRate = this.getExchangeRate(commandInput.getCurrency(),
+                                                savingsAccount.getCurrency());
+        } catch (Exception e) {
+            return;
+        }
         double convertedAmount = commandInput.getAmount() * exchangeRate;
 
         if (!savingsAccount.hasEnoughBalance(convertedAmount)) {
-            throw new Exception("Insufficient funds");
+            return;
         }
 
         savingsAccount.withdraw(convertedAmount);
-
-        // deposit amount in classic account
-        String currency = commandInput.getCurrency();
-        for (Account classicAccount : user.getAccounts()) {
-            // if it s a classic account
-            if (classicAccount.isClassicAccount() && classicAccount.getCurrency().equals(currency)) {
-                classicAccount.deposit(commandInput.getAmount());
-
-                // create transaction
-                Transaction transaction = new Transaction.TransactionBuilder()
-                        .setTimestamp(commandInput.getTimestamp())
-                        .setDescription("Savings withdrawal")
-                        .setAmountWithdrawn(commandInput.getAmount())
-                        .setClassicAccountIban(classicAccount.getIban())
-                        .setSavingsAccountIban(savingsAccount.getIban())
-                        .build();
-                // add to the classic account
-                user.addTransaction(transaction);
-                classicAccount.addTransaction(transaction);
-
-                // add to the savings account
-                user.addTransaction(transaction);
-                savingsAccount.addTransaction(transaction);
-                return;
-            }
-        }
+        depositAmountInClassicAccount(commandInput, user, savingsAccount);
     }
 
 
+    /**
+     * Generates a report using the given report generator (Strategy pattern)
+     * @param commandInput the command input containing the report details
+     * @param mapper the object mapper
+     * @param reportGenerator the report generator used to generate the report type wanted
+     * @return the report as an ObjectNode
+     * @throws Exception if an error occurs while generating the report
+     */
     public ObjectNode generateReport(final CommandInput commandInput,
                                      final ObjectMapper mapper,
                                      final ReportGenerator reportGenerator) throws Exception {
@@ -170,8 +180,6 @@ public final class Bank extends ExchangeRate {
         }
     }
 
-
-
     /**
      * Checks the status of a card and freezes it if the balance is below the minimum
      * @param cardNumber the card number whose status is checked
@@ -183,8 +191,6 @@ public final class Bank extends ExchangeRate {
         if (account == null) {
             throw new Exception("Card not found");
         }
-
-        System.out.println("tp " + timestamp + " balance of the account: " + account.getBalance() + " vs min balance: " + account.getMinBalance());
 
         // Freeze
         if (account.getBalance() <= account.getMinBalance()) {
@@ -291,8 +297,23 @@ public final class Bank extends ExchangeRate {
         }
     }
 
+    /**
+     * Returns the commerciant with the given name from the bank
+     * @param name the name of the commerciant
+     */
+    public Commerciant getCommerciantWithName(final String name) {
+        for (Commerciant commerciant : commerciants) {
+            if (commerciant.getName().equals(name)) {
+                return commerciant;
+            }
+        }
+        return null;
+    }
 
-
+    /**
+     * @param iban the IBAN of the commerciant
+     * @return the commerciant with the given IBAN or null if it does not exist
+     */
     public Commerciant getCommerciantWithIban(final String iban) {
         for (Commerciant commerciant : commerciants) {
             if (commerciant.getAccountIban().equals(iban)) {
@@ -300,19 +321,6 @@ public final class Bank extends ExchangeRate {
             }
         }
         return null;
-    }
-
-
-
-    /**
-     * @param iban the IBAN of the account whose alias is set
-     * @param alias the new alias
-     */
-    public void setAlias(final String iban, final String alias, final User user) {
-        Account account = getAccountWithIBAN(iban);
-        if (account != null) {
-            account.setAlias(alias, user);
-        }
     }
 
     /**
@@ -395,7 +403,8 @@ public final class Bank extends ExchangeRate {
      * @param account the account to be added
      * @param accountType the type of the account
      */
-    public void addAccountToUser(final String email, final Account account, final String accountType) {
+    public void addAccountToUser(final String email, final Account account,
+                                 final String accountType) {
         User user = getUserWithEmail(email);
         if (user != null) {
             user.addAccount(account);

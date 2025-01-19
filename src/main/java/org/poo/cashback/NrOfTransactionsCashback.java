@@ -1,13 +1,18 @@
 package org.poo.cashback;
 
 import org.poo.accounts.Account;
-import org.poo.transactions.Commerciant;
+import org.poo.commerciants.Commerciant;
 import org.poo.users.User;
 
-public class NrOfTransactionsCashback implements CashbackStrategy {
+public final class NrOfTransactionsCashback implements CashbackStrategy {
+    private static final int NR_TRANSACTIONS_FOOD = 2;
+    private static final int NR_TRANSACTIONS_CLOTHES = 5;
+    private static final int NR_TRANSACTIONS_TECH = 10;
 
-    public void applyCashback(Commerciant commerciant, User sender, Account senderAccount,
-                              double amountInAccountCurrency, double amountInRon) {
+    @Override
+    public void applyCashback(final Commerciant commerciant, final User sender,
+                              final Account senderAccount,
+                              final double amountInAccountCurrency, final double amountInRon) {
 
         // if account already has the commerciant, increment the number of transactions
         if (senderAccount.getCommerciant(commerciant) != null) {
@@ -23,15 +28,17 @@ public class NrOfTransactionsCashback implements CashbackStrategy {
             senderAccount.applyDiscount(commerciant, amountInAccountCurrency);
         }
 
-        if (commerciant.getNrTransactions() == 2 && !senderAccount.isDiscountFoodUsed()) {
+        if (commerciant.getNrTransactions() == NR_TRANSACTIONS_FOOD
+                && !senderAccount.isDiscountFoodUsed()) {
             senderAccount.setDiscountFood();
         }
-        if (commerciant.getNrTransactions() == 5 && !senderAccount.isDiscountClothesUsed()) {
+        if (commerciant.getNrTransactions() == NR_TRANSACTIONS_CLOTHES
+                && !senderAccount.isDiscountClothesUsed()) {
             senderAccount.setDiscountClothes();
         }
-        if (commerciant.getNrTransactions() == 10 && !senderAccount.isDiscountTechUsed()) {
+        if (commerciant.getNrTransactions() == NR_TRANSACTIONS_TECH
+                && !senderAccount.isDiscountTechUsed()) {
             senderAccount.setDiscountTech();
         }
     }
-
 }

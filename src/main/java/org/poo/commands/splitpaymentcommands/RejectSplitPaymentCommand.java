@@ -5,17 +5,18 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.poo.bank.Bank;
 import org.poo.commands.Command;
 import org.poo.fileio.CommandInput;
-import org.poo.transactions.SplitPayment;
+import org.poo.transactions.splitpayments.SplitPayment;
 import org.poo.transactions.Transaction;
 import org.poo.users.User;
 
-public class RejectSplitPaymentCommand extends Command {
-    public RejectSplitPaymentCommand(CommandInput commandInput, ObjectMapper mapper) {
+public final class RejectSplitPaymentCommand extends Command {
+
+    public RejectSplitPaymentCommand(final CommandInput commandInput, final ObjectMapper mapper) {
         super(commandInput, mapper);
     }
 
     @Override
-    public void execute(Bank bank, ObjectNode objectNode) {
+    public void execute(final Bank bank, final ObjectNode objectNode) {
         User user = bank.getUserWithEmail(commandInput.getEmail());
         if (user == null) {
             addCommandAndTimestamp(objectNode);
@@ -25,19 +26,19 @@ public class RejectSplitPaymentCommand extends Command {
             objectNode.set("output", outputNode);
             return;
         }
+
         // get the splitPayment that the user wants to reject
-        SplitPayment splitPayment = user.getFirstSplitTransactionOfType(commandInput.getSplitPaymentType());
+        String type = commandInput.getSplitPaymentType();
+        SplitPayment splitPayment = user.getFirstSplitTransactionOfType(type);
 
-        // if someone rejects, remove the splitPayment from any user that was involved in it and add the transaction to all users
+        // if someone rejects, remove the splitPayment from any user that was
+        // involved in it and add the transaction to all users
         if (splitPayment != null) {
-            // acest splitpayment tb sa l sterg si din toti ceilalti useri
-
             Transaction transaction = splitPayment.createTransactionForReject();
             for (User userFromSplitPayment : splitPayment.getUsers()) {
                 userFromSplitPayment.removeSplitPayment(splitPayment);
                 userFromSplitPayment.addTransaction(transaction);
             }
         }
-
     }
 }

@@ -7,12 +7,10 @@ import org.poo.accounts.Account;
 import org.poo.accounts.BusinessAccount;
 import org.poo.bank.Bank;
 import org.poo.fileio.CommandInput;
-import org.poo.transactions.Commerciant;
+import org.poo.commerciants.Commerciant;
 import org.poo.users.User;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 
-public class BusinessReport implements ReportGenerator {
+public final class BusinessReport implements ReportGenerator {
     private final Bank bank;
 
     public BusinessReport(final Bank bank) {
@@ -22,10 +20,6 @@ public class BusinessReport implements ReportGenerator {
     @Override
     public ObjectNode generateReport(final CommandInput commandInput,
                                      final ObjectMapper mapper) throws Exception {
-
-        int startTimestamp = commandInput.getStartTimestamp();
-        int endTimestamp = commandInput.getEndTimestamp();
-
         Account account = bank.getAccountWithIBAN(commandInput.getAccount());
         if (account == null) {
             throw new Exception("Account not found");
@@ -44,7 +38,7 @@ public class BusinessReport implements ReportGenerator {
         outputNode.put("IBAN", businessAccount.getIban());
         outputNode.put("balance", businessAccount.getBalance());
         outputNode.put("currency", businessAccount.getCurrency());
-        outputNode.put("spending limit", businessAccount.getSpendingLimitForEmployees());
+        outputNode.put("spending limit", businessAccount.getSpendingLimit());
         outputNode.put("deposit limit", businessAccount.getDepositLimit());
         outputNode.put("statistics type", type);
 
@@ -63,14 +57,14 @@ public class BusinessReport implements ReportGenerator {
             // managers output
             ArrayNode managersArray = mapper.createArrayNode();
             for (User manager : businessAccount.getManagers()) {
-                managersArray.add(manager.associateTransformToAnObjectNode(mapper, businessAccount));
+                managersArray.add(manager.associateTransformToAnObjNode(mapper, businessAccount));
             }
             outputNode.set("managers", managersArray);
 
             // employees output
             ArrayNode employeesArray = mapper.createArrayNode();
             for (User employee : businessAccount.getEmployees()) {
-                employeesArray.add(employee.associateTransformToAnObjectNode(mapper, businessAccount));
+                employeesArray.add(employee.associateTransformToAnObjNode(mapper, businessAccount));
             }
             outputNode.set("employees", employeesArray);
         }

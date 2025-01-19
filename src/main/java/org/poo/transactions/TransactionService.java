@@ -4,15 +4,17 @@ import org.poo.accounts.Account;
 import org.poo.accounts.BusinessAccount;
 import org.poo.bank.Bank;
 import org.poo.cashback.CashbackStrategyContext;
+import org.poo.commerciants.Commerciant;
 import org.poo.serviceplans.ServicePlan;
 import org.poo.users.User;
 import org.poo.cards.Card;
 import org.poo.fileio.CommandInput;
 
-
 public class TransactionService {
+    private static final int MIN_AMOUNT_SILVER_PLAN = 300;
+
     private final Bank bank;
-    private CashbackStrategyContext cashbackStrategyContext;
+    private final CashbackStrategyContext cashbackStrategyContext;
 
     public TransactionService(final Bank bank) {
         this.bank = bank;
@@ -20,12 +22,11 @@ public class TransactionService {
     }
 
     /**
-     * Executes the pay online command
+     * Executes the pay online command to a commerciant
      * @param command the object with the whole input
      * @throws Exception if the user or the account is not found
      */
     public void payOnline(final CommandInput command) throws Exception {
-
         if (command.getAmount() <= 0) {
             return;
         }
@@ -35,28 +36,20 @@ public class TransactionService {
             return;
         }
 
+        try {
+            checkCardNotFoundCases(command, user);
+        } catch (Exception e) {
+            throw new Exception("Card not found");
+        }
+
         Account account = bank.getAccountWithCard(command.getCardNumber());
-        if (account == null) {
-            throw new Exception("Card not found");
-        }
-
+        assert account != null;
         Card card = account.getCard(command.getCardNumber());
-        if (card == null) {
-            throw new Exception("Card not found");
-        }
 
-        // if user is not associate or owner of the business account
-        if (account.isBusinessAccount()) {
-            BusinessAccount businessAccount = (BusinessAccount) account;
-            if (!businessAccount.isOwner(user) && !businessAccount.isAssociate(user)) {
-                throw new Exception("Card not found");
-            }
-        } else {
-            // daca contul e unul normal si nu apartine celui care face plata
-            user = bank.getUserWithAccount(account.getIban());
-            if (user == null || !user.getEmail().equals(command.getEmail())) {
-                throw new Exception("Card not found");
-            }
+        // if the card is frozen, don't do the transaction
+        if (card.isFrozen()) {
+            addCardIsFrozenTransaction(user, account, command.getTimestamp());
+            return;
         }
 
         Commerciant commerciant = bank.getCommerciantWithName(command.getCommerciant());
@@ -64,84 +57,25 @@ public class TransactionService {
             throw new Exception("Commerciant not found");
         }
 
-        // if the card is frozen, don't do the transaction
-        if (card.isFrozen()) {
-            Transaction transaction = new Transaction.TransactionBuilder()
-                    .setDescription("The card is frozen")
-                    .setTimestamp(command.getTimestamp())
-                    .build();
-
-            user.addTransaction(transaction);
-            account.addTransaction(transaction);
-            return;
-        }
-
-        // convert amount to account currency and add comission
+        // convert amount to account currency and add commission
         double exchangeRate = bank.getExchangeRate(command.getCurrency(), account.getCurrency());
         double amountInAccountCurrency = command.getAmount() * exchangeRate;
-        double amountWithComission = user.getServicePlan().applyComission(amountInAccountCurrency, account.getCurrency());
-
+        double amountWithCommission = user.getServicePlan().applyCommission(amountInAccountCurrency,
+                                                                            account.getCurrency());
 
         if (account.isBusinessAccount()) {
-            BusinessAccount businessAccount = (BusinessAccount) account;
-            User owner = businessAccount.getOwner();
-            amountWithComission = owner.getServicePlan().applyComission(amountInAccountCurrency, businessAccount.getCurrency());
-
-            if (businessAccount.hasEnoughBalance(amountWithComission)) {
-                try {
-                    businessAccount.increaseAmountSpentOnBusinessAccountByUser(amountInAccountCurrency, user);
-                } catch (Exception e) {
-                    Transaction transaction = new Transaction.TransactionBuilder()
-                            .setDescription("Spending limit exceeded")
-                            .setTimestamp(command.getTimestamp())
-                            .build();
-
-                    // add transaction to the account
-                    businessAccount.addTransaction(transaction);
-
-                    // add transaction to the user in bank
-                    user.addTransaction(transaction);
-                    return;
-                }
-
-                // withdraw the amount from the account
-                businessAccount.withdraw(amountWithComission);
-
-                // the money sent by the owner of the account doesn't count
-                if (!businessAccount.isOwner(user)) {
-                    // if the commerciant is not in the list of commerciants of the account, add it
-                    if (!businessAccount.hasCommerciantAddedByAssociate(commerciant)) {
-                        businessAccount.addCommerciantAddedByAssociate(commerciant);
-                    }
-                    // add the received amount to the commerciant
-                    businessAccount.addAmountReceivedByCommerciant(amountInAccountCurrency, commerciant);
-                    businessAccount.addAssociateToCommerciant(user, commerciant);
-                }
-
-            } else {
-                // CONTUL NU ARE SUFIECIENTE FONDURI
-                Transaction transaction = new Transaction.TransactionBuilder()
-                        .setDescription("Insufficient funds")
-                        .setTimestamp(command.getTimestamp())
-                        .build();
-
-                user.addTransaction(transaction);
-                account.addTransaction(transaction);
+            try {
+                handlePayOnlineForBusinessAccount(account, user, commerciant,
+                                                  amountInAccountCurrency, command.getTimestamp());
+            } catch (Exception e) {
                 return;
             }
-
         } else {
-            // NU E BUSINESS ACCOUNT
-            if (account.hasEnoughBalance(amountWithComission)) {
-                account.withdraw(amountWithComission);
+            // not a business account
+            if (account.hasEnoughBalance(amountWithCommission)) {
+                account.withdraw(amountWithCommission);
             } else {
-                Transaction transaction = new Transaction.TransactionBuilder()
-                        .setDescription("Insufficient funds")
-                        .setTimestamp(command.getTimestamp())
-                        .build();
-
-                user.addTransaction(transaction);
-                account.addTransaction(transaction);
+                addInsufficientFundsTransaction(user, account, command.getTimestamp());
                 return;
             }
         }
@@ -149,38 +83,58 @@ public class TransactionService {
         card.handlePostPayment(account, user, command, amountInAccountCurrency);
 
         // CASHBACK
-        double amountInRon = command.getAmount() * bank.getExchangeRate(command.getCurrency(), "RON");
-        applyCashBack(commerciant, user, account, amountInAccountCurrency, amountInRon);
+        exchangeRate = bank.getExchangeRate(command.getCurrency(), "RON");
+        double amountInRon = command.getAmount() * exchangeRate;
+        applyCashback(commerciant, user, account, amountInAccountCurrency, amountInRon);
 
-        // increase the number of payments of at least 300 RON (useful for the upgradePlan case)
-        if (account.isBusinessAccount()) {
-            user = ((BusinessAccount) account).getOwner();
-        }
-        if (user.getServicePlan().getName().equals("silver") && amountInRon >= 300) {
-            user.increaseMin300payments();
-        }
-        user.checkForUpgradeToGoldPlan(account, bank, command.getTimestamp());
+        handlePotentialUpgradeToGoldPlan(account, user, command.getTimestamp(), amountInRon);
     }
-
 
     /**
-     *
-     * @param commerciant to which the payment was made
-     * @param sender the one who made the payment
-     * @param senderAccount the account from which the payment was made (which receives the cashback)
-     * @param amountInAccountCurrency the amount of the payment in the sender's account currency
-     * @param amountInRon the amount of the payment in RON
+     * Handles the pay online command for a business account
+     * @param account the account from which the payment is made
+     * @param user the user that makes the payment
+     * @param commerciant the commerciant that receives the payment
+     * @param timestamp the timestamp of the payment
+     * @param amountInAccountCurrency the amount of the payment in the account currency
+     * @throws Exception if the account doesn't have enough funds or the spending limit is exceeded
      */
-    public void applyCashBack(Commerciant commerciant, User sender, Account senderAccount, double amountInAccountCurrency, double amountInRon) {
-        cashbackStrategyContext.setCashbackStrategy(commerciant);
-        cashbackStrategyContext.applyCashback(commerciant, sender, senderAccount, amountInAccountCurrency, amountInRon);
+    public void handlePayOnlineForBusinessAccount(final Account account, final User user,
+                                                  final Commerciant commerciant,
+                                                  final double amountInAccountCurrency,
+                                                  final int timestamp) throws Exception {
+        BusinessAccount businessAcc = (BusinessAccount) account;
+        ServicePlan servicePlan = businessAcc.getOwner().getServicePlan();
+        double amountWithCommission = servicePlan.applyCommission(amountInAccountCurrency,
+                                                                  businessAcc.getCurrency());
+
+        if (businessAcc.hasEnoughBalance(amountWithCommission)) {
+            try {
+                businessAcc.increaseAmountSpentByUser(amountInAccountCurrency, user);
+            } catch (Exception e) {
+                addSpendingLimitExceededTransaction(user, businessAcc, timestamp);
+                throw new Exception("Spending limit exceeded");
+            }
+
+            // withdraw the amount from the account
+            businessAcc.withdraw(amountWithCommission);
+
+            // the money sent by the owner of the account doesn't count
+            if (!businessAcc.isOwner(user)) {
+                // if the commerciant is not in the list of commerciants of the account, add it
+                if (!businessAcc.hasCommerciantAddedByAssociate(commerciant)) {
+                    businessAcc.addCommerciantAddedByAssociate(commerciant);
+                }
+                // add the received amount to the commerciant
+                businessAcc.addAmountReceivedByCommerciant(amountInAccountCurrency, commerciant);
+                businessAcc.addAssociateToCommerciant(user, commerciant);
+            }
+        } else {
+            // the account doesn't have enough funds
+            addInsufficientFundsTransaction(user, account, timestamp);
+            throw new Exception("Insufficient funds");
+        }
     }
-
-
-
-
-
-
 
     /**
      * Executes the transfer command
@@ -222,23 +176,18 @@ public class TransactionService {
         }
 
         // start the transaction to another user
-        // convert amount to receiver currency
         double amountSender = command.getAmount();
         double exchangeRate = bank.getExchangeRate(senderAccount.getCurrency(),
                 receiverAccount.getCurrency());
         double amountInReceiverCurrency = command.getAmount() * exchangeRate;
 
-        // if the senderAccount is business and the sender si employee, need to check for the spending limit
-        if (senderAccount.isBusinessAccount() && ((BusinessAccount)senderAccount).isEmployee(senderUser)) {
+        // if the senderAccount is business, need to check for the spending limit
+        if (senderAccount.isBusinessAccount()
+                && ((BusinessAccount) senderAccount).isEmployee(senderUser)) {
             // if the spending limit is exceeded, add a transaction to the account and the user
-            if (amountSender > ((BusinessAccount)senderAccount).getSpendingLimitForEmployees()) {
-                Transaction transaction = new Transaction.TransactionBuilder()
-                        .setDescription("Spending limit exceeded")
-                        .setTimestamp(command.getTimestamp())
-                        .build();
-
-                senderAccount.addTransaction(transaction);
-                senderUser.addTransaction(transaction);
+            if (amountSender > ((BusinessAccount) senderAccount).getSpendingLimit()) {
+                int timestamp = command.getTimestamp();
+                addSpendingLimitExceededTransaction(senderUser, senderAccount, timestamp);
                 return;
             }
         }
@@ -263,10 +212,10 @@ public class TransactionService {
                 .setTransferType("received")
                 .build();
 
-        // if the money is sent from a business account, the comission is from the owner
+        // if the money is sent from a business account, the commission is from the owner
         ServicePlan servicePlanForComission = senderUser.getServicePlan();
         if (senderAccount.isBusinessAccount()) {
-            servicePlanForComission = ((BusinessAccount)senderAccount).getOwner().getServicePlan();
+            servicePlanForComission = ((BusinessAccount) senderAccount).getOwner().getServicePlan();
         }
 
         try {
@@ -290,30 +239,32 @@ public class TransactionService {
         senderAccount.addTransaction(transactionSender);
         receiverAccount.addTransaction(transactionReceiver);
 
-        // increase the number of min 300 RON payments if the sender has silver plan
         double exchangeRateRon = bank.getExchangeRate(senderAccount.getCurrency(), "RON");
         double amountInRon = command.getAmount() * exchangeRateRon;
-
-        if (senderAccount.isBusinessAccount()) {
-            senderUser = ((BusinessAccount)senderAccount).getOwner();
-        }
-        if (senderUser.getServicePlan().getName().equals("silver") && amountInRon >= 300) {
-            senderUser.increaseMin300payments();
-        }
-        senderUser.checkForUpgradeToGoldPlan(senderAccount, bank, command.getTimestamp());
+        int timestamp = command.getTimestamp();
+        handlePotentialUpgradeToGoldPlan(senderAccount, senderUser, timestamp, amountInRon);
     }
 
-
-
-
-
-
-    public void sendMoneyToCommerciant(User senderUser, Account senderAccount, Commerciant receiverCommerciant, CommandInput command) {
+    /**
+     * Executes the transfer command to a commerciant
+     * @param senderUser the user that sends the money
+     * @param senderAccount the account from which the money is sent
+     * @param receiverCommerciant the commerciant that receives the money
+     * @param command the object with the whole input
+     */
+    public void sendMoneyToCommerciant(final User senderUser, final Account senderAccount,
+                                       final Commerciant receiverCommerciant,
+                                       final CommandInput command) {
         double amountSender = command.getAmount();
-        double amountSenderWithComission = senderUser.getServicePlan().applyComission(amountSender, senderAccount.getCurrency());
-        // if the money are sent from a business account, the comission is from the owner
+        ServicePlan servicePlan = senderUser.getServicePlan();
+        double amountSenderWithComission = servicePlan.applyCommission(amountSender,
+                                                                       senderAccount.getCurrency());
+        // if the money are sent from a business account, the commission is from the owner
         if (senderAccount.isBusinessAccount()) {
-            amountSenderWithComission = ((BusinessAccount)senderAccount).getOwner().getServicePlan().applyComission(amountSender, senderAccount.getCurrency());
+            User owner = ((BusinessAccount) senderAccount).getOwner();
+            servicePlan = owner.getServicePlan();
+            amountSenderWithComission = servicePlan.applyCommission(amountSender,
+                                                                    senderAccount.getCurrency());
         }
 
         if (senderAccount.hasEnoughBalance(amountSenderWithComission)) {
@@ -321,28 +272,22 @@ public class TransactionService {
 
             // add the received amount to the commerciant
             if (senderAccount.isBusinessAccount()) {
-                BusinessAccount businessAccount = (BusinessAccount) senderAccount;
+                BusinessAccount businessAcc = (BusinessAccount) senderAccount;
 
                 // the money sent by the owner of the account doesn't count
-                if (!businessAccount.isOwner(senderUser)) {
+                if (!businessAcc.isOwner(senderUser)) {
                     // if the commerciant is not in the list of commerciants of the account, add it
-                    if (!businessAccount.hasCommerciantAddedByAssociate(receiverCommerciant)) {
-                        businessAccount.addCommerciantAddedByAssociate(receiverCommerciant);
+                    if (!businessAcc.hasCommerciantAddedByAssociate(receiverCommerciant)) {
+                        businessAcc.addCommerciantAddedByAssociate(receiverCommerciant);
                     }
                     // add the received amount to the commerciant
-                    businessAccount.addAmountReceivedByCommerciant(amountSender, receiverCommerciant);
-                    businessAccount.addAssociateToCommerciant(senderUser, receiverCommerciant);
+                    businessAcc.addAmountReceivedByCommerciant(amountSender, receiverCommerciant);
+                    businessAcc.addAssociateToCommerciant(senderUser, receiverCommerciant);
                 }
             }
         } else {
             // not everyone has enough funds
-            Transaction transaction = new Transaction.TransactionBuilder()
-                    .setDescription("Insufficient funds")
-                    .setTimestamp(command.getTimestamp())
-                    .build();
-
-            senderUser.addTransaction(transaction);
-            senderAccount.addTransaction(transaction);
+            addInsufficientFundsTransaction(senderUser, senderAccount, command.getTimestamp());
             return;
         }
 
@@ -366,86 +311,89 @@ public class TransactionService {
             return;
         }
         double amountInRon = amountSender * exchangeRate;
-        applyCashBack(receiverCommerciant, senderUser, senderAccount, amountSender, amountInRon);
+        applyCashback(receiverCommerciant, senderUser, senderAccount, amountSender, amountInRon);
 
-        // increase the number of min 300 RON payments if the sender has silver plan
-        if (senderAccount.isBusinessAccount()) {
-            senderUser = ((BusinessAccount)senderAccount).getOwner();
-        }
-        if (senderUser.getServicePlan().getName().equals("silver") && amountInRon >= 300) {
-            senderUser.increaseMin300payments();
-        }
-        senderUser.checkForUpgradeToGoldPlan(senderAccount, bank, command.getTimestamp());
-
+        int timestamp = command.getTimestamp();
+        handlePotentialUpgradeToGoldPlan(senderAccount, senderUser, timestamp, amountInRon);
     }
 
+    /**
+     *
+     * @param commerciant to which the payment was made
+     * @param sender the one who made the payment
+     * @param senderAccount the account from which the payment was made (receives the cashback)
+     * @param amountInAccountCurrency the amount of the payment in the sender's account currency
+     * @param amountInRon the amount of the payment in RON
+     */
+    public void applyCashback(final Commerciant commerciant, final User sender,
+                              final Account senderAccount, final double amountInAccountCurrency,
+                              final double amountInRon) {
+        cashbackStrategyContext.setCashbackStrategy(commerciant);
+        cashbackStrategyContext.applyCashback(commerciant, sender, senderAccount,
+                                              amountInAccountCurrency, amountInRon);
+    }
 
-
-
-
-
-
-
-
-    public void cashWithdrawal(CommandInput commandInput) throws Exception {
-        Account account = bank.getAccountWithCard(commandInput.getCardNumber());
-        if (account == null) {
-            throw new Exception("Card not found");
+    /**
+     * Handles the potential upgrade to gold plan after a transaction
+     * @param senderAccount the account from which the payment was made
+     * @param senderUser the user that made the payment
+     * @param timestamp the timestamp of the payment
+     * @param amountInRon the amount of the payment in RON
+     */
+    public void handlePotentialUpgradeToGoldPlan(final Account senderAccount, final User senderUser,
+                                                 final int timestamp, final double amountInRon) {
+        User user;
+        if (senderAccount.isBusinessAccount()) {
+            user = ((BusinessAccount) senderAccount).getOwner();
+        } else {
+            user = senderUser;
         }
 
-        Card card = account.getCard(commandInput.getCardNumber());
-        if (card == null) {
-            throw new Exception("Card not found");
+        // increase the number of min 300 RON payments if the sender has silver plan
+        if (user.getServicePlan().isSilverPlan() && amountInRon >= MIN_AMOUNT_SILVER_PLAN) {
+            user.increaseMin300payments();
         }
+        user.checkForUpgradeToGoldPlan(senderAccount, bank, timestamp);
+    }
 
+    /**
+     * Executes the cash withdrawal from an account
+     * @param commandInput the object with the whole input
+     * @throws Exception if the user or the account is not found
+     */
+    public void cashWithdrawal(final CommandInput commandInput) throws Exception {
         User user = bank.getUserWithEmail(commandInput.getEmail());
-
         if (user == null) {
             throw new Exception("User not found");
         }
 
-        // if the account is business and the user is not associated with the account
-        if (account.isBusinessAccount()) {
-            BusinessAccount businessAccount = (BusinessAccount) account;
-            if (!businessAccount.isOwner(user) && !businessAccount.isAssociate(user)) {
-                throw new Exception("Card not found");
-            }
-        } else {
-            // if the one trying to withdraw money is not the owner of the account
-            user = bank.getUserWithAccount(account.getIban());
-            if (user == null || !user.getEmail().equals(commandInput.getEmail())) {
-                throw new Exception("Card not found");
-            }
+        try {
+            checkCardNotFoundCases(commandInput, user);
+        } catch (Exception e) {
+            throw new Exception("Card not found");
         }
+
+        Account account = bank.getAccountWithCard(commandInput.getCardNumber());
+        assert account != null;
+        Card card = account.getCard(commandInput.getCardNumber());
 
         // if the card is frozen, don't do the transaction
         if (card.isFrozen()) {
-            Transaction transaction = new Transaction.TransactionBuilder()
-                    .setDescription("The card is frozen")
-                    .setTimestamp(commandInput.getTimestamp())
-                    .build();
-
-            user.addTransaction(transaction);
-            account.addTransaction(transaction);
+            addCardIsFrozenTransaction(user, account, commandInput.getTimestamp());
             return;
         }
 
         double amountInRon = commandInput.getAmount();
-        double amountInAccountCurrency = amountInRon * bank.getExchangeRate("RON", account.getCurrency());
-        double amountWithComission = user.getServicePlan().applyComission(amountInAccountCurrency, account.getCurrency());
-
-        if (!account.hasEnoughBalance(amountWithComission)) {
-            Transaction transaction = new Transaction.TransactionBuilder()
-                    .setDescription("Insufficient funds")
-                    .setTimestamp(commandInput.getTimestamp())
-                    .build();
-
-            user.addTransaction(transaction);
-            account.addTransaction(transaction);
+        double exchangeRate = bank.getExchangeRate("RON", account.getCurrency());
+        double amountInAccountCurrency = amountInRon * exchangeRate;
+        double amountWithCommission = user.getServicePlan().applyCommission(amountInAccountCurrency,
+                                                                            account.getCurrency());
+        if (!account.hasEnoughBalance(amountWithCommission)) {
+            addInsufficientFundsTransaction(user, account, commandInput.getTimestamp());
             return;
         }
 
-        if (account.getBalance() - amountWithComission < account.getMinBalance()) {
+        if (account.getBalance() - amountWithCommission < account.getMinBalance()) {
             Transaction transaction = new Transaction.TransactionBuilder()
                     .setDescription("Cannot perform payment due to a minimum balance being set")
                     .setTimestamp(commandInput.getTimestamp())
@@ -460,21 +408,15 @@ public class TransactionService {
         if (account.isBusinessAccount()) {
             BusinessAccount businessAccount = (BusinessAccount) account;
             if (businessAccount.isEmployee(user)) {
-                if (amountInRon > businessAccount.getSpendingLimitForEmployees()) {
-                    Transaction transaction = new Transaction.TransactionBuilder()
-                            .setDescription("Spending limit exceeded")
-                            .setTimestamp(commandInput.getTimestamp())
-                            .build();
-
-                    user.addTransaction(transaction);
-                    account.addTransaction(transaction);
+                if (amountInRon > businessAccount.getSpendingLimit()) {
+                    addSpendingLimitExceededTransaction(user, account, commandInput.getTimestamp());
                     return;
                 }
             }
         }
 
         // withdraw cash from the account
-        account.withdraw(amountWithComission);
+        account.withdraw(amountWithCommission);
         Transaction transaction = new Transaction.TransactionBuilder()
                 .setDescription("Cash withdrawal of " + commandInput.getAmount())
                 .setTimestamp(commandInput.getTimestamp())
@@ -483,5 +425,89 @@ public class TransactionService {
 
         user.addTransaction(transaction);
         account.addTransaction(transaction);
+    }
+
+    /**
+     * Adds a transaction to the user and the account when there are insufficient funds
+     * @param user the user to which the transaction is added
+     * @param account the account to which the transaction is added
+     * @param timestamp the timestamp of the transaction
+     */
+    public void addInsufficientFundsTransaction(final User user, final Account account,
+                                                final int timestamp) {
+        Transaction transaction = new Transaction.TransactionBuilder()
+                .setDescription("Insufficient funds")
+                .setTimestamp(timestamp)
+                .build();
+
+        user.addTransaction(transaction);
+        account.addTransaction(transaction);
+    }
+
+    /**
+     * Adds a transaction to the user and the account when the spending limit is exceeded
+     * @param user the user to which the transaction is added
+     * @param account the account to which the transaction is added
+     * @param timestamp the timestamp of the transaction
+     */
+    public void addSpendingLimitExceededTransaction(final User user, final Account account,
+                                                    final int timestamp) {
+        Transaction transaction = new Transaction.TransactionBuilder()
+                .setDescription("Spending limit exceeded")
+                .setTimestamp(timestamp)
+                .build();
+
+        user.addTransaction(transaction);
+        account.addTransaction(transaction);
+    }
+
+    /**
+     * Adds a transaction to the user and the account when the card is frozen
+     * @param user the user that has the card
+     * @param account the account that has the card
+     * @param timestamp the timestamp of the transaction
+     */
+    public void addCardIsFrozenTransaction(final User user, final Account account,
+                                           final int timestamp) {
+        Transaction transaction = new Transaction.TransactionBuilder()
+                .setDescription("The card is frozen")
+                .setTimestamp(timestamp)
+                .build();
+
+        user.addTransaction(transaction);
+        account.addTransaction(transaction);
+    }
+
+    /**
+     * Checks the cases when the card is not found for the pay online and cash withdrawal commands
+     * @param commandInput the object with the whole input
+     * @param user the user that makes the payment
+     * @throws Exception if the card is not found
+     */
+    public void checkCardNotFoundCases(final CommandInput commandInput,
+                                       final User user) throws Exception {
+        Account account = bank.getAccountWithCard(commandInput.getCardNumber());
+        if (account == null) {
+            throw new Exception("Card not found");
+        }
+
+        Card card = account.getCard(commandInput.getCardNumber());
+        if (card == null) {
+            throw new Exception("Card not found");
+        }
+
+        // if the account is business and the user is not associated with the account
+        if (account.isBusinessAccount()) {
+            BusinessAccount businessAccount = (BusinessAccount) account;
+            if (!businessAccount.isOwner(user) && !businessAccount.isAssociate(user)) {
+                throw new Exception("Card not found");
+            }
+        } else {
+            // if the account is not a business account and the user is not the owner
+            User accOwner = bank.getUserWithAccount(account.getIban());
+            if (accOwner == null || !accOwner.getEmail().equals(commandInput.getEmail())) {
+                throw new Exception("Card not found");
+            }
+        }
     }
 }

@@ -7,12 +7,16 @@ import lombok.Getter;
 import lombok.Setter;
 import org.poo.accounts.Account;
 import org.poo.accounts.BusinessAccount;
+import org.poo.bank.Bank;
+import org.poo.serviceplans.ServicePlan;
+import org.poo.serviceplans.StandardPlan;
+import org.poo.serviceplans.StudentPlan;
+import org.poo.serviceplans.GoldPlan;
+import org.poo.serviceplans.SilverPlan;
 import org.poo.transactions.TransactionHistory;
-import org.poo.bank.*;
 import org.poo.cards.Card;
 import org.poo.fileio.UserInput;
-import org.poo.serviceplans.*;
-import org.poo.transactions.SplitPayment;
+import org.poo.transactions.splitpayments.SplitPayment;
 import org.poo.transactions.Transaction;
 
 import java.util.ArrayList;
@@ -30,23 +34,14 @@ public class User {
     private int min300payments;
     private final TransactionHistory transactionHistory;
     private int nrClassicAccounts;
-
-    // for splitPayment
     private ArrayList<SplitPayment> splitPayments;
-
     private Map<BusinessAccount, Double> amountsDepositedOnBusinessAccounts;
     private Map<BusinessAccount, Double> amountsSpentOnBusinessAccounts;
+    private ArrayList<Card> cardsAddedToBusinessAccount; // for employees
 
-    // for employee
-    private ArrayList<Card> cardsAddedToBusinessAccount;
-
-
-//    enum DiscountType {
-//        FOOD,
-//        CLOTHES,
-//        TECH
-//    }
-
+    private static final int MIN_300_PAYMENTS_REQUIRED = 5;
+    private static final int CURRENT_YEAR = 2024;
+    private static final int BIRTH_YEAR_POSITION = 4;
 
     public User(final UserInput userInfo, final Bank bank) {
         this.userInfo = userInfo;
@@ -55,72 +50,91 @@ public class User {
         } else {
             this.servicePlan = new StandardPlan(bank);
         }
-
         this.accounts = new ArrayList<>();
         this.transactionHistory = new TransactionHistory();
-
         this.nrClassicAccounts = 0;
         this.min300payments = 0;
-
         this.splitPayments = new ArrayList<>();
-
         this.amountsDepositedOnBusinessAccounts = new HashMap<>();
         this.amountsSpentOnBusinessAccounts = new HashMap<>();
-
         this.cardsAddedToBusinessAccount = new ArrayList<>();
-
     }
 
-
+    /**
+     * Adds the card to the list of cards added to a business account by this user
+     * @param card the card to be added
+     */
     public void addCardToCardsAddedToBusinessAccount(final Card card) {
         cardsAddedToBusinessAccount.add(card);
     }
 
+    /**
+     * Removes the card from the list of cards added to a business account by this user
+     * @param card the card to be removed
+     */
     public void removeCardFromCardsAddedToBusinessAccount(final Card card) {
         cardsAddedToBusinessAccount.remove(card);
     }
 
-
-
-    public void increaseAmountSpentOnBusinessAccount(BusinessAccount account, double amount) {
+    /**
+     * Increases the amount spent on the business account by this user
+     * @param account the business account on which the amount is spent
+     * @param amount the amount spent
+     */
+    public void increaseAmountSpentOnBusinessAccount(final BusinessAccount account,
+                                                     final double amount) {
         double currentAmount = amountsSpentOnBusinessAccounts.getOrDefault(account, 0.0);
         amountsSpentOnBusinessAccounts.put(account, currentAmount + amount);
     }
 
-    public double getAmountSpentOnBusinessAccount(BusinessAccount account) {
+    /**
+     * @param account the business account to be checked
+     * @return the amount spent on the business account by this user
+     */
+    public double getAmountSpentOnBusinessAccount(final BusinessAccount account) {
         return amountsSpentOnBusinessAccounts.getOrDefault(account, 0.0);
     }
 
-    public void increaseAmountDepositedOnBusinessAccount(BusinessAccount account, double amount) {
+    /**
+     * Increases the amount deposited on the business account by this user
+     * @param account the business account on which the amount is deposited
+     * @param amount the amount deposited
+     */
+    public void increaseAmountDepositedOnBusinessAccount(final BusinessAccount account,
+                                                         final double amount) {
         double currentAmount = amountsDepositedOnBusinessAccounts.getOrDefault(account, 0.0);
         amountsDepositedOnBusinessAccounts.put(account, currentAmount + amount);
     }
 
-    public double getAmountDepositedOnBusinessAccount(BusinessAccount account) {
+    /**
+     * @param account the business account to be checked
+     * @return the amount deposited on the business account by this user
+     */
+    public double getAmountDepositedOnBusinessAccount(final BusinessAccount account) {
         return amountsDepositedOnBusinessAccounts.getOrDefault(account, 0.0);
     }
 
-
-
-
-
-    public String getUsername() {
-        return userInfo.getLastName() + " " + userInfo.getFirstName();
-    }
-
-
-
-
-
-
+    /**
+     * Adds a split payment to the user's list of split payments
+     * @param splitPayment the split payment to be added
+     */
     public void addSplitPayment(final SplitPayment splitPayment) {
         splitPayments.add(splitPayment);
     }
 
+    /**
+     * Removes the split payment from the user's list of split payments
+     * @param splitPayment the split payment to be removed
+     */
     public void removeSplitPayment(final SplitPayment splitPayment) {
         splitPayments.remove(splitPayment);
     }
 
+    /**
+     * Accepts the first split payment of the given type
+     * @param type the type of the split payment to be accepted
+     * @return the split payment accepted, null if it doesn't exist
+     */
     public SplitPayment acceptSplitPayment(final String type) {
         // accept the first split payment of type given (they are accepted in order)
         if (!splitPayments.isEmpty()) {
@@ -134,6 +148,10 @@ public class User {
         return null;
     }
 
+    /**
+     * @param type the type of the split payment wanted
+     * @return the first split payment of the given type, null if it doesn't exist
+     */
     public SplitPayment getFirstSplitTransactionOfType(final String type) {
         for (SplitPayment splitPayment : splitPayments) {
             if (splitPayment.getType().equals(type)) {
@@ -143,28 +161,38 @@ public class User {
         return null;
     }
 
-
-
-
+    /**
+     * Increases the number of classic accounts of the user
+     */
     public void incrementNrClassicAccounts() {
         nrClassicAccounts++;
     }
 
+    /**
+     * @return true if the user has at least one classic account, false otherwise
+     */
     public boolean hasClassicAccount() {
-        if (nrClassicAccounts >= 1) {
-            return true;
-        }
-        return false;
+        return nrClassicAccounts >= 1;
     }
 
+    /**
+     * Increases the number of payments of at least 300 RON
+     */
     public void increaseMin300payments() {
         min300payments++;
     }
 
-
-
-    public boolean checkForUpgradeToGoldPlan(Account account, final Bank bank, final int timestamp) {
-        if (min300payments >= 5 && this.servicePlan.getName().equals("silver")) {
+    /**
+     * Checks if the user has made at least 5 payments of at least 300 RON
+     * If he did, the user is automatically upgraded to the gold plan
+     * @param account the account used to add transactions
+     * @param bank the bank used to get the exchange rate and create the service plans
+     * @param timestamp the timestamp of the command
+     * @return true if the user was upgraded to the gold plan, false otherwise
+     */
+    public boolean checkForUpgradeToGoldPlan(final Account account, final Bank bank,
+                                             final int timestamp) {
+        if (min300payments >= MIN_300_PAYMENTS_REQUIRED && this.servicePlan.isSilverPlan()) {
             this.servicePlan = new GoldPlan(bank);
 
             Transaction transaction = new Transaction.TransactionBuilder()
@@ -180,15 +208,20 @@ public class User {
         return false;
     }
 
-
-    public void upgradePlan(Account account, final Bank bank, final int timestamp, final String newPlanType) throws Exception {
-
+    /**
+     * Upgrades the user's plan to the new plan type
+     * @param account used to withdraw the fee for the upgrade and add transactions
+     * @param bank used to get the exchange rate and create the service plans
+     * @param timestamp the timestamp of the command
+     * @param newPlanType the new plan type to which the user will be upgraded
+     * @throws Exception if an error occurs during the upgrade
+     */
+    public void upgradePlan(final Account account, final Bank bank, final int timestamp,
+                            final String newPlanType) throws Exception {
         // if user has silver plan, make the automatic upgrade to gold plan (without fee)
         if (checkForUpgradeToGoldPlan(account, bank, timestamp)) {
             return;
         }
-
-
 
         String currentPlanName = this.servicePlan.getName();
         if (newPlanType.equals(currentPlanName)) {
@@ -209,6 +242,7 @@ public class User {
             default -> throw new Exception("Invalid plan type");
         };
 
+        // can't downgrade the plan
         if (newServicePlan.getUpgradeLevel() < this.servicePlan.getUpgradeLevel()) {
             return;
         }
@@ -243,30 +277,27 @@ public class User {
                 .build();
         this.addTransaction(transaction);
         account.addTransaction(transaction);
-
-        // if the new plan is silver, reset the number of payments over 300
-        if (newPlanType.equals("silver")) {
-            setMin300payments(0);
-        }
     }
 
-
-
+    /**
+     * If the user is an employee in a business account need to be kept evidence of the cards added
+     * @param card the card to be checked
+     * @return true if the card was added to a business account by this user, false otherwise
+     */
     public boolean hasCardAddedToBusinessAccount(final Card card) {
         return cardsAddedToBusinessAccount.contains(card);
     }
 
-
-
     /**
      * @param cardNumber the card number which will be deleted
      * @param timestamp the timestamp of the command
+     * @param bank the bank used to find the account with the card
      */
     public void deleteCard(final String cardNumber, final int timestamp, final Bank bank) {
         for (Account account : accounts) {
             for (Card card : account.getCards()) {
                 if (card.getCardNumber().equals(cardNumber)) {
-                    // if the account stil has money in it, don't delete the card
+                    // if the account still has money in it, don't delete the card
                     if (account.hasMoneyInAccount()) {
                         return;
                     }
@@ -305,16 +336,29 @@ public class User {
     /**
      * @param iban the IBAN of the account where the card will be created
      * @param timestamp the timestamp of the command
+     * @param bank the bank used to find the account
      */
-    public void createCard(final String iban, final int timestamp) {
+    public void createCard(final String iban, final int timestamp, final Bank bank) {
         Account account = getAccount(iban);
         String cardNumber = generateCardNumber();
 
         if (account == null) {
-            return;
+            // if the account is not found among the user's accounts, maybe the
+            // one creating the card is an employee or manager of a business account
+            account = bank.getAccountWithIBAN(iban);
+            if (account == null) {
+                return;
+            }
+            if (!account.isBusinessAccount()) {
+                return;
+            }
         }
 
-        account.createCard(cardNumber, this);
+        try {
+            account.createCard(cardNumber, this);
+        } catch (Exception e) {
+            return;
+        }
 
         Transaction transaction = new Transaction.TransactionBuilder()
                 .setTimestamp(timestamp)
@@ -331,15 +375,29 @@ public class User {
     /**
      * @param iban the IBAN of the account where the one-time card will be created
      * @param timestamp the timestamp of the command
+     * @param bank the bank used to find the account
      */
-    public void createOneTimeCard(final String iban, final int timestamp) {
+    public void createOneTimeCard(final String iban, final int timestamp, final Bank bank) {
         Account account = getAccount(iban);
         String cardNumber = generateCardNumber();
 
         if (account == null) {
+            // if the account is not found among the user's accounts, maybe the
+            // one creating the card is an employee or manager of a business account
+            account = bank.getAccountWithIBAN(iban);
+            if (account == null) {
+                return;
+            }
+            if (!account.isBusinessAccount()) {
+                return;
+            }
+        }
+
+        try {
+            account.createOneTimeCard(cardNumber, this);
+        } catch (Exception e) {
             return;
         }
-        account.createOneTimeCard(cardNumber, this);
 
         Transaction transaction = new Transaction.TransactionBuilder()
                 .setTimestamp(timestamp)
@@ -359,6 +417,13 @@ public class User {
      */
     public void addTransaction(final Transaction transaction) {
         transactionHistory.addTransaction(transaction);
+    }
+
+    /**
+     * @return the user's full name
+     */
+    public String getUsername() {
+        return userInfo.getLastName() + " " + userInfo.getFirstName();
     }
 
     /**
@@ -382,19 +447,28 @@ public class User {
         return userInfo.getEmail();
     }
 
+    /**
+     * @return the user's birth date
+     */
     public String getBirthDate() {
         return userInfo.getBirthDate();
     }
 
+    /**
+     * @return the user's occupation
+     */
     public String getOccupation() {
         return userInfo.getOccupation();
     }
 
+    /**
+     * @return the user's age
+     */
     public int getAge() {
-        return 2024 - Integer.parseInt(userInfo.getBirthDate().substring(0,4));
+        String birthDate = userInfo.getBirthDate();
+        int birthYear = Integer.parseInt(birthDate.substring(0, BIRTH_YEAR_POSITION));
+        return CURRENT_YEAR - birthYear;
     }
-
-
 
     /**
      * @param account the account to be added to the user's list of accounts
@@ -410,42 +484,42 @@ public class User {
      */
     public void deleteAccount(final String iban, final int timestamp) throws Exception {
         Account account = getAccount(iban);
+        if (account == null) {
+            return;
+        }
 
-        if (account != null) {
-
-            // if the account is business, only the owner can delete de account
-            if (account.isBusinessAccount()) {
-                BusinessAccount businessAccount = (BusinessAccount) account;
-                if (!businessAccount.getOwner().getEmail().equals(this.getEmail())) {
-                    Transaction transaction = new Transaction.TransactionBuilder()
-                            .setTimestamp(timestamp)
-                            .setDescription("Account couldn't be deleted - only the owner can delete the account")
-                            .build();
-                    this.addTransaction(transaction);
-                    throw new Exception("Account couldn't be deleted - see org.poo.transactions "
-                            + "for details");
-                }
-            }
-
-
-            if (account.hasMoneyInAccount()) {
-                // add transaction to user
+        // if the account is business, only the owner can delete de account
+        if (account.isBusinessAccount()) {
+            BusinessAccount businessAccount = (BusinessAccount) account;
+            if (!businessAccount.getOwner().getEmail().equals(this.getEmail())) {
                 Transaction transaction = new Transaction.TransactionBuilder()
                         .setTimestamp(timestamp)
-                        .setDescription("Account couldn't be deleted - there are funds remaining")
+                        .setDescription("Account couldn't be deleted - only the"
+                                + " owner can delete the account")
                         .build();
                 this.addTransaction(transaction);
                 throw new Exception("Account couldn't be deleted - see org.poo.transactions "
                         + "for details");
             }
-
-            // if account is of type classic account, decrement the number of classic accounts
-            if (account.isClassicAccount()) {
-                nrClassicAccounts--;
-            }
-
-            accounts.remove(account);
         }
+
+        if (account.hasMoneyInAccount()) {
+            // add transaction to user
+            Transaction transaction = new Transaction.TransactionBuilder()
+                    .setTimestamp(timestamp)
+                    .setDescription("Account couldn't be deleted - there are funds remaining")
+                    .build();
+            this.addTransaction(transaction);
+            throw new Exception("Account couldn't be deleted - see org.poo.transactions "
+                    + "for details");
+        }
+
+        // if account is of type classic account, decrement the number of classic accounts
+        if (account.isClassicAccount()) {
+            nrClassicAccounts--;
+        }
+
+        accounts.remove(account);
     }
 
     /**
@@ -456,21 +530,6 @@ public class User {
         for (Account account : accounts) {
             if (account.getIban().equals(iban)) {
                 return account;
-            }
-        }
-        return null;
-    }
-
-    /**
-     * @param cardNumber the card number to be searched for
-     * @return the account that has the card with the given card number
-     */
-    public Account getAccountWithCard(final String cardNumber) {
-        for (Account account : accounts) {
-            for (Card card : account.getCards()) {
-                if (card.getCardNumber().equals(cardNumber)) {
-                    return account;
-                }
             }
         }
         return null;
@@ -508,8 +567,13 @@ public class User {
         return transactionHistory.transactionsTransformToArrayNode(objectMapper);
     }
 
-
-    public ObjectNode associateTransformToAnObjectNode(final ObjectMapper objectMapper, final BusinessAccount businessAccount) {
+    /**
+     * @param objectMapper an instance of ObjectMapper used to create and manipulate JSON nodes
+     * @param businessAccount the business account to which the user is associated
+     * @return an ObjectNode representing the user's attributes associated to a business account
+     */
+    public ObjectNode associateTransformToAnObjNode(final ObjectMapper objectMapper,
+                                                    final BusinessAccount businessAccount) {
         ObjectNode userNode = objectMapper.createObjectNode();
 
         userNode.put("username", getUsername());

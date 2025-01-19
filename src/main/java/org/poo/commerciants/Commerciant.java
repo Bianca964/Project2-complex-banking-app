@@ -1,4 +1,4 @@
-package org.poo.transactions;
+package org.poo.commerciants;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -9,6 +9,7 @@ import org.poo.fileio.CommerciantInput;
 import org.poo.users.User;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 
 @Getter
@@ -25,8 +26,7 @@ public class Commerciant {
     private ArrayList<User> managers;
     private ArrayList<User> employees;
 
-
-    public Commerciant(CommerciantInput commerciantInput) {
+    public Commerciant(final CommerciantInput commerciantInput) {
         this.name = commerciantInput.getCommerciant();
         this.id = commerciantInput.getId();
         this.accountIban = commerciantInput.getAccount();
@@ -39,7 +39,7 @@ public class Commerciant {
         this.employees = new ArrayList<>();
     }
 
-    public Commerciant(Commerciant commerciant, double totalAmountSpent) {
+    public Commerciant(final Commerciant commerciant, final double totalAmountSpent) {
         this.name = commerciant.getName();
         this.id = commerciant.getId();
         this.accountIban = commerciant.getAccountIban();
@@ -49,48 +49,60 @@ public class Commerciant {
         this.totalAmountReceived = 0;
         this.managers = new ArrayList<>();
         this.employees = new ArrayList<>();
-
-        // I do not need these when I construct commerciant with this constructor
         this.nrTransactions = 0;
     }
 
-//
-//    public CashbackStrategy getCashbackStrategyInstance() {
-//        if (cashbackStrategy.equals("nrOfTransactions")) {
-//            return new NrOfTransactionsCashback();
-//        } else if (cashbackStrategy.equals("spendingThreshold")) {
-//            return new SpendingThresholdCashback();
-//        }
-//        return null;
-//    }
-
-
-
-
-    // tb sa i adaug in ordine alfabetica dupa numele managerului
+    /**
+     * Add manager to the list of managers ordered alphabetically by the manager's name
+     * @param manager manager to be added to the list of managers
+     */
     public void addManager(final User manager) {
-        this.managers.add(manager);
-        managers.sort(Comparator.comparing(User::getUsername));
+        int index = Collections.binarySearch(managers, manager,
+                                             Comparator.comparing(User::getUsername));
+        if (index < 0) {
+            index = -(index + 1);
+        }
+        managers.add(index, manager);
     }
 
-    // tb sa i adaug in ordine alfabetica dupa numele angajatului
+    /**
+     * Add employee to the list of employees ordered alphabetically by the employee's name
+     * @param employee employee to be added to the list of employees
+     */
     public void addEmployee(final User employee) {
-        this.employees.add(employee);
-        employees.sort(Comparator.comparing(User::getUsername));
+        int index = Collections.binarySearch(employees, employee,
+                                             Comparator.comparing(User::getUsername));
+        if (index < 0) {
+            index = -(index + 1);
+        }
+        employees.add(index, employee);
     }
 
+    /**
+     * Increment the number of transactions made by the client at this commerciant
+     */
     public void incrementNrTransactions() {
         this.nrTransactions++;
     }
 
+    /**
+     * @return true if the cashback strategy is "nrOfTransactions", false otherwise
+     */
     public boolean isNrOfTransactionType() {
         return cashbackStrategy.equals("nrOfTransactions");
     }
 
+    /**
+     * @return true if the cashback strategy is "spendingThreshold", false otherwise
+     */
     public boolean isSpendingThresholdType() {
         return cashbackStrategy.equals("spendingThreshold");
     }
 
+    /**
+     * Add to the total amount received by this commerciant
+     * @param amount received by the commerciant (paid by the client)
+     */
     public void addAmountReceived(final double amount) {
         this.totalAmountReceived += amount;
     }
@@ -116,7 +128,10 @@ public class Commerciant {
         return commerciantNode;
     }
 
-
+    /**
+     * @param mapper ObjectMapper used to create the ObjectNode
+     * @return ObjectNode representing the commerciant
+     */
     public ObjectNode transformToObjectNodeForBusinessReport(final ObjectMapper mapper) {
         ObjectNode commerciantNode = mapper.createObjectNode();
 

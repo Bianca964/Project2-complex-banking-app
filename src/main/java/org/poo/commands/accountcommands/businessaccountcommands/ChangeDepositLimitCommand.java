@@ -9,7 +9,7 @@ import org.poo.commands.Command;
 import org.poo.fileio.CommandInput;
 import org.poo.users.User;
 
-public class ChangeDepositLimitCommand extends Command {
+public final class ChangeDepositLimitCommand extends Command {
 
     public ChangeDepositLimitCommand(final CommandInput commandInput, final ObjectMapper mapper) {
         super(commandInput, mapper);

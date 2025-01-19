@@ -1,8 +1,12 @@
 package org.poo.commands;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.poo.commands.accountcommands.*;
-import org.poo.commands.accountcommands.businessaccountcommands.AddNewBusinessAssociateCommand;
+import org.poo.commands.accountcommands.AddAccountCommand;
+import org.poo.commands.accountcommands.AddFundsCommand;
+import org.poo.commands.accountcommands.DeleteAccountCommand;
+import org.poo.commands.accountcommands.SetMinimumBalanceCommand;
+import org.poo.commands.accountcommands.SetAliasCommand;
+import org.poo.commands.accountcommands.businessaccountcommands.AddNewBussAssociateCommand;
 import org.poo.commands.accountcommands.businessaccountcommands.ChangeDepositLimitCommand;
 import org.poo.commands.accountcommands.businessaccountcommands.ChangeSpendingLimitCommand;
 import org.poo.commands.accountcommands.savingsaccountcommands.AddInterestCommand;
@@ -62,7 +66,7 @@ public final class CommandFactory {
             case "upgradePlan" -> new UpgradePlanCommand(commandInput, mapper);
             case "cashWithdrawal" -> new CashWithdrawalCommand(commandInput, mapper);
             case "acceptSplitPayment" -> new AcceptSplitPaymentCommand(commandInput, mapper);
-            case "addNewBusinessAssociate" -> new AddNewBusinessAssociateCommand(commandInput, mapper);
+            case "addNewBusinessAssociate" -> new AddNewBussAssociateCommand(commandInput, mapper);
             case "changeSpendingLimit" -> new ChangeSpendingLimitCommand(commandInput, mapper);
             case "businessReport" -> new BusinessReportCommand(commandInput, mapper);
             case "changeDepositLimit" -> new ChangeDepositLimitCommand(commandInput, mapper);

@@ -27,10 +27,6 @@ public class OneTimeCard extends Card {
         this.used = false;
     }
 
-    public boolean isOneTimeCard() {
-        return true;
-    }
-
     /**
      * Handles the post payment for the OneTimeCard for the payOnline command (resets the
      * card number, creates the transactions for the destroyed card and the new card and
@@ -43,8 +39,6 @@ public class OneTimeCard extends Card {
     public void handlePostPayment(final Account account, final User user,
                                   final CommandInput command,
                                   final double convertedAmount) {
-
-
         // the payment transaction
         Transaction transaction = new Transaction.TransactionBuilder()
                 .setDescription("Card payment")
@@ -82,7 +76,5 @@ public class OneTimeCard extends Card {
 
         user.addTransaction(transactionNewOneTimeCard);
         account.addTransaction(transactionNewOneTimeCard);
-
-
     }
 }

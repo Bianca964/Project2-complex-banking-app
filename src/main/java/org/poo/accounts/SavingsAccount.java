@@ -7,7 +7,7 @@ import org.poo.transactions.Transaction;
 
 @Setter
 @Getter
-public class SavingsAccount extends Account {
+public final class SavingsAccount extends Account {
     private double interestRate;
 
     public SavingsAccount(final String currency, final String type, final int timestamp,
@@ -48,21 +48,6 @@ public class SavingsAccount extends Account {
     @Override
     public boolean supportsReport() {
         return false;
-    }
-
-
-    public void withdraw(final double amount, final User user, final int timestamp) {
-        if (hasEnoughBalance(amount)) {
-            Transaction transaction = new Transaction.TransactionBuilder()
-                    .setTimestamp(timestamp)
-                    .setDescription("Withdraw from savings account")
-                    .setAccountIBAN(getIban())
-                    .build();
-
-            user.addTransaction(transaction);
-            this.addTransaction(transaction);
-            setBalance(getBalance() - amount);
-        }
     }
 
     @Override

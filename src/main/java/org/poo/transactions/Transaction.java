@@ -6,10 +6,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Getter;
 import org.poo.accounts.Account;
 import org.poo.serviceplans.ServicePlan;
-import org.poo.users.User;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.List;
 
 @Getter
@@ -22,7 +19,7 @@ public final class Transaction {
     private final Account fromAccount;
     private final Account toAccount;
     private final String toAccountCommerciant;
-    private double amountSender;
+    private final double amountSender;
     private final double amountReceiver;
     private final String transferType;
 
@@ -56,10 +53,10 @@ public final class Transaction {
     private final double amountInterest;
     private final String currencyAddInterest;
 
-    // whithdraw savings
-    private String classicAccountIban;
-    private String savingsAccountIban;
-    private double amountWithdrawn;
+    // withdraw savings
+    private final String classicAccountIban;
+    private final String savingsAccountIban;
+    private final double amountWithdrawn;
 
     // private constructor for forcing the use of the Builder
     private Transaction(final TransactionBuilder builder) {
@@ -90,7 +87,6 @@ public final class Transaction {
         this.savingsAccountIban = builder.savingsAccountIban;
         this.amountWithdrawn = builder.amountWithdrawn;
         this.toAccountCommerciant = builder.toAccountCommerciant;
-
     }
 
     public static final class TransactionBuilder {
@@ -122,56 +118,89 @@ public final class Transaction {
         private double amountWithdrawn;
         private String toAccountCommerciant;
 
+        /**
+         * @param argToAccountCommerciant the IBAN of the account for the sendMoney command
+         */
         public TransactionBuilder setToAccountCommerciant(final String argToAccountCommerciant) {
             this.toAccountCommerciant = argToAccountCommerciant;
             return this;
         }
 
+        /**
+         * @param argClassicAccountIban the IBAN of the classic account for the savings withdrawal
+         */
         public TransactionBuilder setClassicAccountIban(final String argClassicAccountIban) {
             this.classicAccountIban = argClassicAccountIban;
             return this;
         }
 
+        /**
+         * @param argSavingsAccountIban the IBAN of the savings account for the savings withdrawal
+         */
         public TransactionBuilder setSavingsAccountIban(final String argSavingsAccountIban) {
             this.savingsAccountIban = argSavingsAccountIban;
             return this;
         }
 
+        /**
+         * @param argAmountWithdrawn the amount of money withdrawn in the withdrawSavings command
+         */
         public TransactionBuilder setAmountWithdrawn(final double argAmountWithdrawn) {
             this.amountWithdrawn = argAmountWithdrawn;
             return this;
         }
 
+        /**
+         * @param argSplitPaymentType the type of the splitTransaction command
+         */
         public TransactionBuilder setSplitPaymentType(final String argSplitPaymentType) {
             this.splitPaymentType = argSplitPaymentType;
             return this;
         }
 
+        /**
+         * @param argAmounts the list of amounts for the splitTransaction command
+         */
         public TransactionBuilder setAmountsSplitTransaction(final List<Double> argAmounts) {
             this.amountsSplitTransaction = argAmounts;
             return this;
         }
 
+        /**
+         * @param argAmountInterest the amount of interest added to the savings account
+         */
         public TransactionBuilder setAmountInterest(final double argAmountInterest) {
             this.amountInterest = argAmountInterest;
             return this;
         }
 
+        /**
+         * @param argCurrencyAddInterest the currency of the addInterest command
+         */
         public TransactionBuilder setCurrencyAddInterest(final String argCurrencyAddInterest) {
             this.currencyAddInterest = argCurrencyAddInterest;
             return this;
         }
 
+        /**
+         * @param argAmountCashWithdrawal the amount of money withdrawn in the cashWithdrawal
+         */
         public TransactionBuilder setAmountCashWithdrawal(final double argAmountCashWithdrawal) {
             this.amountCashWithdrawal = argAmountCashWithdrawal;
             return this;
         }
 
-        public TransactionBuilder setAccountIbanUpgradePlan(final String argAccountIbanUpgradePlan) {
-            this.accountIbanUpgradePlan = argAccountIbanUpgradePlan;
+        /**
+         * @param argIbanUpgradePlan the IBAN of the account for the upgradePlan command
+         */
+        public TransactionBuilder setAccountIbanUpgradePlan(final String argIbanUpgradePlan) {
+            this.accountIbanUpgradePlan = argIbanUpgradePlan;
             return this;
         }
 
+        /**
+         * @param argNewPlanType the new plan type for the upgradePlan command
+         */
         public TransactionBuilder setNewPlanType(final String argNewPlanType) {
             this.newPlanType = argNewPlanType;
             return this;
@@ -318,21 +347,18 @@ public final class Transaction {
         }
     }
 
-
-
-
-
     /**
      * Executes the sendMoney command
      * @throws Exception if the sender does not have enough money in the account
      */
-    public void doTransactionSendMoney(ServicePlan servicePlan) throws Exception {
+    public void doTransactionSendMoney(final ServicePlan servicePlan) throws Exception {
         if (amountSender <= 0 || fromAccount == null || toAccount == null) {
             return;
         }
 
         // apply comission
-        double amountSenderWithComission = servicePlan.applyComission(amountSender, fromAccount.getCurrency());
+        double amountSenderWithComission = servicePlan.applyCommission(amountSender,
+                                                                       fromAccount.getCurrency());
 
         if (fromAccount.getBalance() < amountSenderWithComission) {
             throw new Exception("Insufficient funds");
@@ -390,7 +416,6 @@ public final class Transaction {
         }
 
         // payOnline
-        //BigDecimal roundedAmountToPay = new BigDecimal(amountPayOnline).setScale(2, RoundingMode.HALF_UP);
         if (amountPayOnline > 0) {
             objectNode.put("amount", amountPayOnline);
         }
@@ -438,7 +463,7 @@ public final class Transaction {
             objectNode.put("currency", currencyAddInterest);
         }
 
-        // spliyTransactionCustom
+        // splitTransactionCustom
         if (splitPaymentType != null) {
             objectNode.put("splitPaymentType", splitPaymentType);
         }

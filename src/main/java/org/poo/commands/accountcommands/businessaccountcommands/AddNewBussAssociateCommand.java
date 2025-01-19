@@ -9,9 +9,10 @@ import org.poo.commands.Command;
 import org.poo.fileio.CommandInput;
 import org.poo.users.User;
 
-public class AddNewBusinessAssociateCommand extends Command {
+public final class AddNewBussAssociateCommand extends Command {
 
-    public AddNewBusinessAssociateCommand(final CommandInput commandInput, final ObjectMapper mapper) {
+    public AddNewBussAssociateCommand(final CommandInput commandInput,
+                                      final ObjectMapper mapper) {
         super(commandInput, mapper);
     }
 
@@ -22,7 +23,6 @@ public class AddNewBusinessAssociateCommand extends Command {
 
         if (account != null && account.isBusinessAccount() && associate != null) {
             ((BusinessAccount) account).addAssociate(associate, commandInput.getRole());
-            System.out.println("Associate " + associate.getEmail() + " added to business account " + account.getIban() + " with role " + commandInput.getRole() + " at timestamp " + commandInput.getTimestamp());
         }
     }
 }

@@ -108,8 +108,8 @@ public class Commerciant {
     }
 
     /**
-     * Add amount spent by the client to the total amount spent by the client at this commerciant
-     * @param amount amount spent by the client (to be added to the total amount spent)
+     * Add amount spent by the clients to the total amount spent at this commerciant
+     * @param amount amount spent by the client
      */
     public void addAmountSpent(final double amount) {
         this.totalAmountSpent += amount;

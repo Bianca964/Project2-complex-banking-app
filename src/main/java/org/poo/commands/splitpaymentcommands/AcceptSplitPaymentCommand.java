@@ -26,6 +26,7 @@ public final class AcceptSplitPaymentCommand extends Command {
             objectNode.set("output", outputNode);
             return;
         }
+
         SplitPayment splitPayment = user.acceptSplitPayment(commandInput.getSplitPaymentType());
 
         // execute split payment only if everyone has accepted

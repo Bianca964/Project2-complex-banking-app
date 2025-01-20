@@ -129,6 +129,20 @@ public abstract class Account {
     }
 
     /**
+     * Checks if the account has a commerciant in its list of commerciants
+     * @param wantedCommerciant the commerciant to be checked
+     * @return true if the account has the commerciant in its list of commerciants, false otherwise
+     */
+    public boolean hasCommerciant(final Commerciant wantedCommerciant) {
+        for (Commerciant c : commerciants) {
+            if (c.getName().equals(wantedCommerciant.getName())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Adds a commerciant to the list of commerciants of the account
      * @param commerciant the commerciant to be added to the list of commerciants to
      *                    which the account has made transactions

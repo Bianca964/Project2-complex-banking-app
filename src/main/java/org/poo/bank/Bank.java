@@ -22,10 +22,11 @@ import static org.poo.utils.Utils.MIN_BALANCE_DIFFERENCE;
 
 @Getter
 public final class Bank extends ExchangeRate {
+    private static final double MIN_AGE_REQUIRED = 21;
+
     private final ArrayList<User> users;
     private final ArrayList<Commerciant> commerciants;
     private static Bank bank;
-    private static final double MIN_AGE_REQUIRED = 21;
 
     private Bank(final UserInput[] users, final ExchangeInput[] exchangeRates,
                  final CommerciantInput[] commerciants) {
@@ -42,7 +43,7 @@ public final class Bank extends ExchangeRate {
     }
 
     /**
-     * Static method to create a unique bank instance (singleton pattern)
+     * Static method to create a unique bank instance (Singleton pattern)
      * @param users the users of the bank
      * @param exchangeRates the exchange rates of the bank
      * @return the bank instance

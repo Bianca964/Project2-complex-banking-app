@@ -12,7 +12,7 @@ public final class SpendingThresholdCashback implements CashbackStrategy {
                               final double amountInAccountCurrency, final double amountInRon) {
 
         // if account doesn't have the commerciant, add it to account
-        if (senderAccount.getCommerciant(commerciant) == null) {
+        if (!senderAccount.hasCommerciant(commerciant)) {
             senderAccount.addCommerciant(commerciant);
         }
 

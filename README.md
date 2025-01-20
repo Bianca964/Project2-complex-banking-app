@@ -17,7 +17,7 @@ and managing exchange rates between two currencies (`ExchangeRate`).
 `SavingsAccount`, and the newly introduced `BusinessAccount`, which includes additional
 business-specific logic. The `DiscountManager` class is responsible for handling account-related
 discounts (cashback).
-3. **cards** - Contains card-related classes, such as `Card` (base class) and the `OneTimeCard`
+3. **cards** - Contains card-related classes: `Card` (base class) and the `OneTimeCard`
 class which extends the "Card" class and provides additional logic for one-time cards.
 4. **cashback** - Introduces a cashback system based on commerciants and spending. It includes:
     * the `CashbackStrategy` interface for defining cashback rules.
@@ -62,8 +62,9 @@ online payments, cashback etc.
 ## Features
 The application provides the following enhanced functionalities:
 1. **Business Accounts** - Added for corporate clients, supporting advanced features like higher
-transaction limits and integration with the cashback system for transactions. It has an owner with
-privileges to manage the account and its associated users (managers and employees).
+transaction limits and integration with the cashback system for transactions. These accounts have
+an owner with privileges to manage the account and its associated users (managers and employees)
+who dispose of different permissions.
 2. **Cashback System** - Introduced a cashback system based on commerciants and spending, offering
 different strategies for cashback rewards.
 3. **Service Plans** - Introduced service plans for users, offering different fees and commissions
@@ -97,10 +98,10 @@ commerciant reports and transaction reports.
 5. **Strategy Pattern** - Used in two key areas:
 
    1. Cashback System :
-     * The `CashbackStrategy` interface serves as the base for defining different cashback
-   strategies, such as `NrOfTransactionsCashback` and `SpendingThresholdCashback`.
-     * The `CashbackStrategyContext` class enables dynamic switching between these strategies
-   depending on the commerciant type.
+      * The `CashbackStrategy` interface serves as the base for defining different cashback
+      strategies, such as `NrOfTransactionsCashback` and `SpendingThresholdCashback`.
+      * The `CashbackStrategyContext` class enables dynamic switching between these strategies
+      depending on the commerciant type.
 
    2. Report Generation :
       * The `ReportGenerator` interface forms the basis for the Strategy pattern in report

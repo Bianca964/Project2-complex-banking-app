@@ -146,6 +146,4 @@ public final class SplitPaymentCustom extends SplitPayment {
                 .setAmountsSplitTransaction(amounts)
                 .build();
     }
-
-
 }

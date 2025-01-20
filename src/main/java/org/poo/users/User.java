@@ -201,6 +201,7 @@ public class User {
                     .setAccountIbanUpgradePlan(account.getIban())
                     .setNewPlanType("gold")
                     .build();
+
             this.addTransaction(transaction);
             account.addTransaction(transaction);
             return true;

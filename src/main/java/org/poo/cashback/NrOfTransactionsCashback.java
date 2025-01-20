@@ -15,7 +15,7 @@ public final class NrOfTransactionsCashback implements CashbackStrategy {
                               final double amountInAccountCurrency, final double amountInRon) {
 
         // if account already has the commerciant, increment the number of transactions
-        if (senderAccount.getCommerciant(commerciant) != null) {
+        if (senderAccount.hasCommerciant(commerciant)) {
             senderAccount.incrementNrOfTrnscForCommerciant(commerciant);
         } else {
             // if account doesn't have the commerciant, add it to account

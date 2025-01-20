@@ -43,6 +43,7 @@ public class TransactionService {
         }
 
         Account account = bank.getAccountWithCard(command.getCardNumber());
+        // if the account would be null, it would have thrown the exception "Card not found"
         assert account != null;
         Card card = account.getCard(command.getCardNumber());
 

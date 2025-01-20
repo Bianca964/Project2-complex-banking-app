@@ -45,7 +45,6 @@ public final class BusinessAccount extends Account {
 
     /**
      * Add commerciant added by associate ordered alphabetically by name
-     * Used for the business report
      * @param commerciant commerciant to be added to which the associate made transactions
      */
     public void addCommerciantAddedByAssociate(final Commerciant commerciant) {
@@ -54,7 +53,7 @@ public final class BusinessAccount extends Account {
     }
 
     /**
-     * Add amount received by commerciant to the total amount received by the commerciant
+     * Add amount received by commerciant to its total amount received
      * @param amount amount received by the commerciant
      * @param commerciant commerciant which received the amount
      */
@@ -63,7 +62,7 @@ public final class BusinessAccount extends Account {
     }
 
     /**
-     * Check if the commerciant was added by an associate
+     * Checks if the commerciant was added by an associate
      * @param commerciant commerciant to be checked
      * @return true if the commerciant was added by an associate, false otherwise
      */
@@ -130,22 +129,6 @@ public final class BusinessAccount extends Account {
      */
     public void addManager(final User user) {
         managers.add(user);
-    }
-
-    /**
-     * Remove employee from the list of employees
-     * @param user employee to be removed
-     */
-    public void removeEmployee(final User user) {
-        employees.remove(user);
-    }
-
-    /**
-     * Remove manager from the list of managers
-     * @param user manager to be removed
-     */
-    public void removeManager(final User user) {
-        managers.remove(user);
     }
 
     /**

@@ -17,6 +17,7 @@ public final class SpendingsReportCommand extends Command {
     @Override
     public void execute(final Bank bank, final ObjectNode objectNode) {
         addCommandAndTimestamp(objectNode);
+
         try {
             ReportGenerator reportGenerator = new SpendingsReport(bank);
             objectNode.set("output", bank.generateReport(commandInput, mapper, reportGenerator));
